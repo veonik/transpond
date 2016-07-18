@@ -11,7 +11,10 @@ install:
   - pip install -U platformio
 
 script:
-  - rm -rf lib/Adafruit-GFX/{Fonts,fontconvert} && platformio ci --board=uno --board=nanoatmega328 --board=megaatmega2560
+  - rm -rf lib/Adafruit-GFX/{Fonts,fontconvert}
+  - platformio run -e uno
+  - platformio run -e nano
+  - platformio run -e mega
 
 env:
   - PLATFORMIO_BUILD_FLAGS="-DTRANSMITTER"
