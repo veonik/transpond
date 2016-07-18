@@ -1,6 +1,8 @@
 transpond
 =========
 
+[![Build Status](https://travis-ci.org/veonik/transpond.svg?branch=master)](https://travis-ci.org/veonik/transpond)
+
 An Arduino application for remotely tracking a model rocket.
 
 This application contains two parts: the transponder module and the handset module.
