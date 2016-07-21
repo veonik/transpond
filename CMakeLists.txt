@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
-project(commtest)
+project(transpond)
 
 include(CMakeListsPrivate.txt)
 
@@ -46,7 +46,6 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(commtest
-    src/handset.cpp
-    src/receiver.cpp
+add_executable(transpond
+    src/handset.cpp src/transponder.cpp
 )

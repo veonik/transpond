@@ -10,3 +10,21 @@
 [submodule "lib/synack"]
 	path = lib/synack
 	url = https://github.com/veonik/arduino-synack.git
+[submodule "lib/Adafruit_10DOF"]
+	path = lib/Adafruit_10DOF
+	url = https://github.com/adafruit/Adafruit_10DOF.git
+[submodule "lib/Adafruit_Sensor"]
+	path = lib/Adafruit_Sensor
+	url = https://github.com/adafruit/Adafruit_Sensor.git
+[submodule "lib/Adafruit_L3GD20_U"]
+	path = lib/Adafruit_L3GD20_U
+	url = https://github.com/adafruit/Adafruit_L3GD20_U.git
+[submodule "lib/Adafruit_LSM303DLHC"]
+	path = lib/Adafruit_LSM303DLHC
+	url = https://github.com/adafruit/Adafruit_LSM303DLHC.git
+[submodule "lib/Adafruit_BMP085"]
+	path = lib/Adafruit_BMP085
+	url = https://github.com/adafruit/Adafruit_BMP085_Unified.git
+[submodule "lib/Touch_Screen"]
+	path = lib/Touch_Screen
+	url = https://github.com/Seeed-Studio/Touch_Screen_Driver.git

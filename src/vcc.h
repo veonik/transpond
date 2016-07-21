@@ -2,7 +2,7 @@
 #define _VCC_H_
 
 
-long readVcc() {
+int readVcc() {
     // Read 1.1V reference against AVcc
     // set the reference to Vcc and the measurement to the internal 1.1V reference
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -23,7 +23,7 @@ long readVcc() {
     long result = (high<<8) | low;
 
     result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-    return result; // Vcc in millivolts
+    return (int) result; // Vcc in millivolts
 }
 
 

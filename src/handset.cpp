@@ -1,4 +1,4 @@
-#ifndef TRANSMITTER
+#ifndef TRANSPONDER
 
 #include <Arduino.h>
 #include <CC1101Radio.h>
@@ -7,61 +7,15 @@
 #include <SD.h>
 #include <SPI.h>
 
+#include "gui.h"
 #include "vcc.h"
+#include "message.h"
 
 #define TFT_DC 6
 #define TFT_CS 5
 #define SD_CS 4
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
-
-typedef void (*drawCallback)(void*);
-
-class Pipeline {
-private:
-    static const byte SIZE = 32;
-
-    drawCallback _callbacks[SIZE];
-    void *_contexts[SIZE];
-
-    short _pop = 0;
-    short _push = 0;
-
-public:
-    void push(drawCallback fn, void *context) {
-        _callbacks[_push] = fn;
-        _contexts[_push] = context;
-        _push++;
-        if (_push == SIZE) {
-            _push = 0; // wrap
-        }
-    }
-
-    void tick() {
-        if (!_callbacks[_pop]) {
-            return;
-        }
-        void *context = _contexts[_pop];
-        _callbacks[_pop](context);
-        _callbacks[_pop] = NULL;
-        _contexts[_pop] = NULL;
-        _pop++;
-        if (_pop == SIZE) {
-            _pop = 0; // wrap
-        }
-    }
-
-    void flush() {
-        while (_pop != _push) {
-            tick();
-        }
-    }
-};
-
-struct Point {
-    short x;
-    short y;
-};
 
 class Stat {
 private:
@@ -115,6 +69,13 @@ public:
 
     void setInvert(bool invert) {
         _invertChart = invert;
+    }
+
+    void set(float stat) {
+        if (stat == NO_READING_FLOAT) {
+            return set(NO_READING_INT);
+        }
+        set((int) stat);
     }
 
     void set(int stat) {
@@ -249,51 +210,53 @@ Stat *Rrssi;
 Stat *Vib;
 Stat *Vcc;
 Stat *Rvcc;
+Stat *Altitude;
+Stat *Heading;
 Pipeline *pipe;
-
-SdFile dataFile;
-
-unsigned long lastUpdate;
-int lastRssi;
-int lastRrssi;
-unsigned long lastRvcc;
-unsigned long lastAck;
-long lastVibration;
+Button *Settings;
 
 Sd2Card card;
 SdVolume volume;
 SdFile root;
+SdFile dataFile;
 
+metrics remote;
 
+unsigned long lastUpdate;
+unsigned long lastAck;
 unsigned long lastSent = 0;
-const unsigned long WAIT = 1000; // in ms
+int lastRssi;      // dBm
+int lastRoundtrip; // ms
+int lastVcc;       // mV
+int sinceLastAck;  // sec
 
+bool disableLogging = false;
 
-void onResponse(Message *msg) {
-    unsigned long ack = millis();
-    int rssi = msg->rssi;
-    Serial.print("received '");
-    String body = msg->getBody();
-    Serial.print(body);
-    Serial.println("'");
-    int i = body.indexOf(' ');
-    // expects "ack <vibration>", so we can just check for i == 3
-    if (i != 3 || body.substring(0, 3) != "ack") {
+const unsigned long SEND_WAIT = 1000;  // in ms
+const unsigned long UPDATE_WAIT = 500; // in ms
+
+void onMessageReceived(Message *msg) {
+    lastAck = millis();
+    lastRssi = msg->rssi;
+    lastRoundtrip = (int) (lastAck-lastSent);
+    Serial.print("received ");
+    const char *body = msg->getBody();
+    Serial.print(msg->size);
+    Serial.println(" bytes");
+    // expects "ack<data>"
+    if (body[0] != 'a' || body[1] != 'c' || body[2] != 'k') {
         Serial.println("received non-ack or malformed");
         return;
     }
-    int j = body.indexOf(' ', i+1);
-    int k = body.indexOf(' ', j+1);
-    lastVibration = body.substring(i+1, j).toInt();
-    lastRvcc = body.substring(j+1, k).toInt();
-    lastRrssi = body.substring(k+1).toInt();
-    lastAck = ack;
-    lastRssi = rssi;
+
+    unpack((char *)body, remote);
+
     Serial.print("round trip ");
-    Serial.print(lastAck-lastSent);
+    Serial.print(lastRoundtrip);
     Serial.println("ms");
 }
 
+#ifdef DEBUG
 void printCardInfo() {
     Serial.print("\nCard type: ");
     switch (card.type()) {
@@ -328,10 +291,7 @@ void printCardInfo() {
     root.ls(LS_R | LS_DATE | LS_SIZE);
     Serial.println();
 }
-
-void waitForResponse(Message *msg) {
-    radio->listen(onResponse);
-}
+#endif
 
 void setup() {
     Serial.begin(38400);
@@ -342,24 +302,39 @@ void setup() {
     tft.fillScreen(ILI9341_BLACK);
 
     if (!card.init(SPI_HALF_SPEED, SD_CS)) {
-        Serial.println("Unable to start SD");
+        Serial.println(F("No SD card inserted, disabling data logger."));
+        disableLogging = true;
     }
 
-    if (!volume.init(card)) {
-        Serial.println("Unable to initialize SD volume");
+    if (!disableLogging && !volume.init(card)) {
+        Serial.println(F("Unable to initialize SD volume"));
+        disableLogging = true;
     }
 
-    root.openRoot(volume);
+    if (!disableLogging && !root.openRoot(volume)) {
+        Serial.println(F("Unable to open volume root"));
+        disableLogging = true;
+    }
 
     radio = new CC1101Radio();
-    Serial.println(CC1101Interrupt);
+    radio->listen(onMessageReceived);
 
 #ifdef DEBUG
-    printCardInfo();
+    if (disableLogging) {
+        Serial.println(F("Cannot print SD card info, logging disabled"));
+    } else {
+        printCardInfo();
+    }
 #endif
 
-    dataFile.open(root, "DATA.TXT", O_CREAT | O_TRUNC);
-    dataFile.close();
+    if (!disableLogging) {
+        if (dataFile.open(root, "DATA.TXT", O_CREAT | O_TRUNC)) {
+            dataFile.close();
+        } else {
+            Serial.println(F("Unable to create log file, disabling data logger."));
+            disableLogging = true;
+        }
+    }
 
     pipe = new Pipeline();
 
@@ -413,67 +388,145 @@ void setup() {
     Vib->setColor(ILI9341_GREEN);
     pipe->push(drawLabelForwarder, Vib);
     pipe->push(drawChartForwarder, Vib);
+
+    Altitude = new Stat(120, 70, 170, 70, 10, 230);
+    Altitude->setLabel("alt");
+    Altitude->setUnit("m");
+    pipe->push(drawLabelForwarder, Altitude);
+
+    Settings = new Button(Point{x: 10, y: 280}, Size{w: 150, h: 30});
+    Settings->setLabel("Settings");
+    pipe->push(drawButtonForwarder, Settings);
+}
+
+void scheduleDraw() {
+    pipe->push(drawValueForwarder, Ack);
+    pipe->push(drawValueForwarder, Lag);
+    pipe->push(drawValueForwarder, Vib);
+    pipe->push(drawValueForwarder, Rssi);
+    pipe->push(drawValueForwarder, Vcc);
+    pipe->push(drawValueForwarder, Rvcc);
+    pipe->push(drawValueForwarder, Rrssi);
+    pipe->push(drawValueForwarder, Altitude);
+
+    pipe->push(drawChartForwarder, Lag);
+    pipe->push(drawChartForwarder, Vib);
+    pipe->push(drawChartForwarder, Rssi);
+    pipe->push(drawChartForwarder, Vcc);
+    pipe->push(drawChartForwarder, Rvcc);
+    pipe->push(drawChartForwarder, Rrssi);
+}
+
+void writeLog() {
+    if (disableLogging) {
+        return;
+    }
+
+    if (!dataFile.open(root, "DATA.TXT", O_APPEND | O_WRITE)) {
+#ifdef DEBUG
+        Serial.println(F("Could not open file for writing"));
+#endif
+        return;
+    }
+
+    // Local sensor readings
+    dataFile.print(lastUpdate);
+    dataFile.print(F("\t"));
+    dataFile.print(sinceLastAck);
+    dataFile.print(F("\t"));
+    dataFile.print(lastVcc);
+    dataFile.print(F("\t"));
+    if (lastRoundtrip != NO_READING_INT) {
+        dataFile.print(lastRoundtrip);
+    }
+    dataFile.print(F("\t"));
+    if (lastRssi != NO_READING_INT) {
+        dataFile.print(lastRssi);
+    }
+    dataFile.print(F("\t"));
+
+    // Remote sensor readings
+    if (validReadingi(remote.lastVcc)) {
+        dataFile.print(remote.lastVcc);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingi(remote.lastRssi)) {
+        dataFile.print(remote.lastRssi);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingi(remote.lastVibration)) {
+        dataFile.print(remote.lastVibration);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastAltitude)) {
+        dataFile.print(remote.lastAltitude);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastTemp)) {
+        dataFile.print(remote.lastTemp);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastPitch)) {
+        dataFile.print(remote.lastPitch);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastRoll)) {
+        dataFile.print(remote.lastRoll);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastHeading)) {
+        dataFile.print(remote.lastHeading);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastGyroX)) {
+        dataFile.print(remote.lastGyroX);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastGyroY)) {
+        dataFile.print(remote.lastGyroY);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(remote.lastGyroZ)) {
+        dataFile.print(remote.lastGyroZ);
+    }
+    dataFile.println(F("\t"));
+    dataFile.close();
 }
 
 void loop() {
     radio->tick();
     pipe->tick();
-    if (millis() - lastSent > WAIT) {
-        Serial.println("sending helo");
+    Settings->tick();
+    if (millis() - lastSent > SEND_WAIT) {
+        Serial.println(F("sending helo"));
         Message msg("helo");
-        msg.then(waitForResponse);
         lastSent = millis();
         radio->send(&msg);
     }
-    if (millis() - lastUpdate > 500) {
+    if (millis() - lastUpdate > UPDATE_WAIT) {
         lastUpdate = millis();
+        lastVcc = readVcc();
 
-        long vcc = readVcc();
-        Vcc->set(vcc);
+        sinceLastAck = (int) lround((lastUpdate - lastAck) / 1000.0);
 
-        int sinceLastAck = (int) (lastUpdate - lastAck) / 1000;
-        Ack->set(sinceLastAck);
-
-        int lag = -1;
-        if (lastAck >= lastSent) {
-            lag = (int) lastAck - lastSent;
+        if (lastAck < lastSent) {
+            remote.setNoReading();
+            lastRoundtrip = NO_READING_INT;
+            lastRssi = NO_READING_INT;
         }
-        Lag->set(lag);
 
-        Rvcc->set((int) lastRvcc);
-        Vib->set((int) lastVibration);
+        Ack->set(sinceLastAck);
+        Vcc->set(lastVcc);
+        Lag->set(lastRoundtrip);
         Rssi->set(lastRssi);
-        Rrssi->set(lastRrssi);
 
-        dataFile.open(root, "DATA.TXT", O_APPEND | O_WRITE);
-        dataFile.print(sinceLastAck);
-        dataFile.print("\t");
-        dataFile.print(lag);
-        dataFile.print("\t");
-        dataFile.print(lastVibration);
-        dataFile.print("\t");
-        dataFile.print(lastRssi);
-        dataFile.print("\t");
-        dataFile.print(vcc);
-        dataFile.print("\t");
-        dataFile.print(lastRvcc);
-        dataFile.write("\n");
-        dataFile.close();
+        Rvcc->set(remote.lastVcc);
+        Vib->set(remote.lastVibration);
+        Rrssi->set(remote.lastRssi);
+        Altitude->set(remote.lastAltitude);
 
-        pipe->push(drawValueForwarder, Ack);
-        pipe->push(drawValueForwarder, Lag);
-        pipe->push(drawValueForwarder, Vib);
-        pipe->push(drawValueForwarder, Rssi);
-        pipe->push(drawValueForwarder, Vcc);
-        pipe->push(drawValueForwarder, Rvcc);
-        pipe->push(drawValueForwarder, Rrssi);
-
-        pipe->push(drawChartForwarder, Lag);
-        pipe->push(drawChartForwarder, Vib);
-        pipe->push(drawChartForwarder, Rssi);
-        pipe->push(drawChartForwarder, Vcc);
-        pipe->push(drawChartForwarder, Rvcc);
-        pipe->push(drawChartForwarder, Rrssi);
+        writeLog();
+        scheduleDraw();
     }
 }
 
