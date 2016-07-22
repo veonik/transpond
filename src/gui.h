@@ -1,6 +1,8 @@
 #ifndef _GUI_H_
 #define _GUI_H_
 
+#include <Arduino.h>
+#include <Adafruit_ILI9341.h>
 #include <SeeedTouchScreen.h>
 
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // mega
@@ -23,61 +25,10 @@
 
 #endif
 
-class Pipeline;
-void drawButtonForwarder(void *context);
-void clickButtonForwarder(void *context);
+void drawControlForwarder(void *context);
+void drawViewControllerForwarder(void *context);
 
-extern Adafruit_ILI9341 tft;
-extern Pipeline *pipe;
-TouchScreen screen = TouchScreen(XP, YP, XM, YM);
-
-typedef void (*drawCallback)(void*);
-
-class Pipeline {
-private:
-    static const byte SIZE = 64;
-
-    drawCallback _callbacks[SIZE];
-    void *_contexts[SIZE];
-
-    short _pop = 0;
-    short _push = 0;
-
-public:
-    void push(drawCallback fn, void *context) {
-        _callbacks[_push] = fn;
-        _contexts[_push] = context;
-        _push++;
-        if (_push == SIZE) {
-            _push = 0; // wrap
-#ifdef DEBUG
-            if (_push == _pop) {
-                Serial.println(F("overflowed Pipeline"));
-            }
-#endif
-        }
-    }
-
-    void tick() {
-        if (!_callbacks[_pop]) {
-            return;
-        }
-        void *context = _contexts[_pop];
-        _callbacks[_pop](context);
-        _callbacks[_pop] = NULL;
-        _contexts[_pop] = NULL;
-        _pop++;
-        if (_pop == SIZE) {
-            _pop = 0; // wrap
-        }
-    }
-
-    void flush() {
-        while (_pop != _push) {
-            tick();
-        }
-    }
-};
+typedef void (*tickCallback)(void*);
 
 struct Point {
     short x;
@@ -89,71 +40,89 @@ struct Size {
     short h;
 };
 
-class Button {
-private:
-    Point _pos;
-    Size _size;
-    const char *_label;
+class ViewController {
+public:
+    virtual void tick() = 0;
+    virtual void draw() = 0;
 
-    byte _touching = 0;
+    virtual void init() = 0;
+    virtual void deinit() = 0;
+};
+
+class Pipeline {
+private:
+    static const byte SIZE = 64;
+
+    tickCallback _callbacks[SIZE];
+    void *_contexts[SIZE];
+
+    short _pop = 0;
+    short _push = 0;
+    bool _draining = false;
+
+    ViewController *_lastViewController;
+    ViewController *_viewController;
 
 public:
-    Button(Point pos, Size siz) {
+    void segueTo(ViewController *nextController);
+
+    void segueBack();
+
+    void push(tickCallback fn, void *context);
+
+    void tick();
+
+    void flush();
+};
+
+class Control {
+protected:
+    Point _pos;
+    Size _size;
+
+public:
+    Control(Point pos, Size siz) {
         _pos = pos;
         _size = siz;
     }
 
-    void setLabel(const char *label) {
-        _label = label;
-    }
-
-    void tick() {
-        if (screen.isTouching()) {
-            TouchPoint pt = screen.getPoint();
-#ifdef DEBUG
-            Serial.print(F("("));
-            Serial.print(pt.x);
-            Serial.print(F(","));
-            Serial.print(pt.y);
-            Serial.print(F(","));
-            Serial.print(pt.z);
-            Serial.println(F(")"));
-#endif
-            if (pt.x >= _pos.x && pt.x <= _pos.x+_size.w
-                && pt.y >= _pos.y && pt.y <= _pos.y+_size.h) {
-                _touching++;
-                pipe->push(drawButtonForwarder, this);
-                Serial.println("touching!");
-            } else if (_touching > 0) {
-                _touching = 0;
-                pipe->push(clickButtonForwarder, this);
-            }
-        }
-    }
-
-    void draw() {
-        int color = 0x2104;
-        if (_touching) {
-            color = ILI9341_LIGHTGREY;
-        }
-        tft.fillRect(_pos.x, _pos.y, _size.w, _size.h, color);
-        tft.setCursor(_pos.x + 10, _pos.y + 10);
-        tft.print(_label);
-    }
-
-    void click() {
-        tft.fillScreen(0x2104);
-        tft.setCursor(240-20, 20);
-        tft.print("X");
-    }
+    virtual void tick() = 0;
+    virtual void draw() = 0;
 };
 
-void drawButtonForwarder(void *context) {
-    static_cast<Button*>(context)->draw();
-}
+class Label : public Control {
+private:
+    const char *_label;
 
-void clickButtonForwarder(void *context) {
-    static_cast<Button*>(context)->click();
-}
+public:
+    Label(Point pos, Size siz) : Control(pos, siz) { }
+
+    void setLabel(const char *label);
+
+    void tick() {}
+
+    void draw();
+};
+
+class Button : public Control {
+private:
+    const char *_label;
+
+    tickCallback _onClick;
+    void *_onClickContext;
+
+    byte _touching = 0;
+
+public:
+    Button(Point pos, Size siz) : Control(pos, siz) { }
+
+    void setLabel(const char *label);
+
+    void then(tickCallback cb, void *context);
+
+    void tick();
+
+    void draw();
+};
 
 #endif

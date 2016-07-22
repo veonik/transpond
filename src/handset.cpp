@@ -15,14 +15,51 @@
 #define TFT_CS 5
 #define SD_CS 4
 
+class DashboardViewController;
+class SettingsViewController;
 class Stat;
+
+
+// TODO: deprecated
+void drawLabelForwarder(void* context);
+void drawValueForwarder(void* context);
 void drawChartForwarder(void* context);
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
-class Stat {
+Pipeline *pipe;
+
+Radio *radio;
+
+Sd2Card card;
+SdVolume volume;
+SdFile root;
+SdFile dataFile;
+
+metrics remote;
+
+unsigned long lastTick;
+unsigned long lastUpdate;
+unsigned long lastAck;
+unsigned long lastSent;
+int lastRssi;        // dBm
+int lastRoundtrip;   // ms
+int lastVcc;         // mV
+int sinceLastAck;    // sec
+long avgTickDelay;   // ms
+long avgSendDelay;   // ms
+long ticks;
+long sends;
+
+bool disableLogging = false;
+
+const long MIN_SEND_WAIT = 100;  // in ms
+const long MAX_SEND_WAIT = 1000; // in ms
+const long TIMEOUT_WAIT = 1000;  // in ms
+const long UPDATE_WAIT = 500;    // in ms
+
+class Stat : public Control {
 private:
-    Point _label;
     Point _value;
     Point _chart;
 
@@ -33,6 +70,7 @@ private:
     const char *_unitText = "";
     int _stat;
     int _historical[160];
+    bool _enableChart = false;
     bool _hideLabel = false;
     bool _redrawChart = true;
     bool _invertChart = false;
@@ -44,10 +82,14 @@ private:
 
 
 public:
-    Stat(short labelX, short labelY, short valueX, short valueY, short chartX, short chartY) {
-        _label = Point{x: labelX, y: labelY};
+    Stat(short labelX, short labelY, short valueX, short valueY, short chartX, short chartY) :
+            Control(Point{x: labelX, y: labelY}, Size{w: 0, h: 0}) {
         _value = Point{x: valueX, y: valueY};
         _chart = Point{x: chartX, y: chartY};
+    }
+
+    void setEnableChart(bool enable) {
+        _enableChart = enable;
     }
 
     void setChartWidth(int width) {
@@ -105,9 +147,20 @@ public:
         _historical[_end] = stat;
     }
 
+    void tick() {
+        pipe->push(drawValueForwarder, this);
+        if (_enableChart) {
+            pipe->push(drawChartForwarder, this);
+        }
+    }
+
+    void draw() {
+        // no op, see tick
+    }
+
     void drawLabel() {
         if (!_hideLabel) {
-            tft.setCursor(_label.x, _label.y+1);
+            tft.setCursor(_pos.x, _pos.y+1);
             tft.setTextColor(ILI9341_WHITE);
             tft.print(_labelText);
         }
@@ -172,10 +225,10 @@ public:
             tft.fillRect(_chart.x + 30, _chart.y, _chartWidth - 80, 30, 0x2104);
         }
 
-        if (_cur < _end) {
+        for ( ; _cur < _end; _cur++) {
             if (invalidReadingi(_historical[_cur])) {
                 tft.drawFastVLine(_chart.x+30+_cur, _chart.y, 30, ILI9341_MAROON);
-                goto pipeNext;
+                break;
             }
             float norm = ((float) abs(_historical[_cur]))/(_max);
             int x = _chart.x+30+_cur;
@@ -186,18 +239,175 @@ public:
                 y = _chart.y+((int) round(norm*29));
             }
             if (y < _chart.y || y > _chart.y+29) {
-                goto pipeNext;
+                break;
             }
             tft.fillRect(x, y, 1, 1, _chartColor);
         }
+    }
+};
 
-        pipeNext:
-        if (_cur < _end) {
-            _cur++;
+class SettingsViewController : public ViewController {
+private:
+    Button *_btnExit;
+
+public:
+    void tick() {
+        _btnExit->tick();
+    }
+
+    void draw() {
+        tft.fillScreen(0x2104);
+    }
+
+    void init() {
+        pipe->push(drawViewControllerForwarder, this);
+
+        _btnExit = new Button(Point{x: 200, y: 10}, Size{w: 40, h: 10});
+        _btnExit->setLabel("x");
+        _btnExit->then([](void *context) {
+            pipe->segueBack();
+        }, NULL);
+        pipe->push(drawControlForwarder, _btnExit);
+    }
+
+    void deinit() {
+        _btnExit = NULL;
+    }
+};
+
+class DashboardViewController : public ViewController {
+private:
+    Button *_btnSettings;
+    Stat *_ack;
+    Stat *_lag;
+    Stat *_rssi;
+    Stat *_rrssi;
+    Stat *_vib;
+    Stat *_vcc;
+    Stat *_rvcc;
+    Stat *_altitude;
+
+    unsigned long _lastUpdate = 0;
+
+public:
+
+    DashboardViewController() : ViewController() { }
+
+    ~DashboardViewController() {
+        deinit();
+    }
+
+    void tick() {
+        _btnSettings->tick();
+
+        if (_lastUpdate < lastUpdate) {
+            _ack->set(sinceLastAck);
+            _vcc->set(lastVcc);
+            _lag->set(lastRoundtrip);
+            _rssi->set(lastRssi);
+
+            _rvcc->set(remote.lastVcc);
+            _vib->set(remote.lastVibration);
+            _rrssi->set(remote.lastRssi);
+            _altitude->set(remote.lastAltitude);
+
+            _lastUpdate = lastUpdate;
+
+            _ack->tick();
+            _lag->tick();
+            _vib->tick();
+            _rssi->tick();
+            _rrssi->tick();
+            _vcc->tick();
+            _rvcc->tick();
+            _altitude->tick();
         }
-        if (_cur < _end) {
-            pipe->push(drawChartForwarder, this);
-        }
+    }
+
+    void draw() {
+        tft.fillScreen(ILI9341_BLACK);
+    }
+
+    void init() {
+        pipe->push(drawViewControllerForwarder, this);
+
+        _btnSettings = new Button(Point{x: 10, y: 280}, Size{w: 150, h: 30});
+        _btnSettings->setLabel("Settings");
+        _btnSettings->then([](void *context) {
+            Serial.println("Clicked settings button!");
+            pipe->segueTo(new SettingsViewController());
+        }, NULL);
+        pipe->push(drawControlForwarder, _btnSettings);
+
+        _ack = new Stat(10, 10, 50, 10, 10, 90);
+        _ack->setLabel("ack");
+        pipe->push(drawLabelForwarder, _ack);
+
+        _lag = new Stat(120, 10, 170, 10, 10, 90);
+        _lag->setLabel("lag");
+        _lag->setUnit("ms");
+        _lag->setColor(ILI9341_BLUE);
+        _lag->setEnableChart(true);
+        pipe->push(drawLabelForwarder, _lag);
+        pipe->push(drawChartForwarder, _lag);
+
+        _rssi = new Stat(10, 30, 10, 30, 10, 125);
+        _rssi->setLabel("rssi");
+        _rssi->setHideLabel(true);
+        _rssi->setUnit("dBm");
+        _rssi->setColor(ILI9341_PURPLE);
+        _rssi->setInvert(true);
+        _rssi->setEnableChart(true);
+        pipe->push(drawLabelForwarder, _rssi);
+        pipe->push(drawChartForwarder, _rssi);
+
+        _rrssi = new Stat(120, 30, 120, 30, 10, 160);
+        _rrssi->setLabel("rrssi");
+        _rrssi->setHideLabel(true);
+        _rrssi->setUnit("dBm");
+        _rrssi->setColor(ILI9341_CYAN);
+        _rrssi->setInvert(true);
+        _rrssi->setEnableChart(true);
+        pipe->push(drawLabelForwarder, _rrssi);
+        pipe->push(drawChartForwarder, _rrssi);
+
+        _vcc = new Stat(10, 50, 50, 50, 10, 195);
+        _vcc->setChartWidth(130);
+        _vcc->setLabel("vcc");
+        _vcc->setUnit("mV");
+        pipe->push(drawLabelForwarder, _vcc);
+
+        _rvcc = new Stat(120, 50, 170, 50, 120, 195);
+        _rvcc->setChartWidth(130);
+        _rvcc->setLabel("rvcc");
+        _rvcc->setUnit("mV");
+        pipe->push(drawLabelForwarder, _rvcc);
+
+        _vib = new Stat(10, 70, 50, 70, 10, 195);
+        _vib->setLabel("vib");
+        _vib->setColor(ILI9341_GREEN);
+        _vib->setEnableChart(true);
+        pipe->push(drawLabelForwarder, _vib);
+        pipe->push(drawChartForwarder, _vib);
+
+        _altitude = new Stat(120, 70, 170, 70, 10, 230);
+        _altitude->setLabel("alt");
+        _altitude->setUnit("m");
+        _altitude->setColor(ILI9341_MAGENTA);
+        _altitude->setEnableChart(true);
+        pipe->push(drawLabelForwarder, _altitude);
+    }
+
+    void deinit() {
+        _btnSettings = NULL;
+        _ack = NULL;
+        _lag = NULL;
+        _rssi = NULL;
+        _rrssi = NULL;
+        _vcc = NULL;
+        _rvcc = NULL;
+        _vib = NULL;
+        _altitude = NULL;
     }
 };
 
@@ -210,47 +420,6 @@ void drawValueForwarder(void* context) {
 void drawChartForwarder(void* context) {
     static_cast<Stat*>(context)->drawChart();
 }
-
-
-Radio *radio;
-Stat *Ack;
-Stat *Lag;
-Stat *Rssi;
-Stat *Rrssi;
-Stat *Vib;
-Stat *Vcc;
-Stat *Rvcc;
-Stat *Altitude;
-Stat *Heading;
-Pipeline *pipe;
-Button *Settings;
-
-Sd2Card card;
-SdVolume volume;
-SdFile root;
-SdFile dataFile;
-
-metrics remote;
-
-unsigned long lastTick;
-unsigned long lastUpdate;
-unsigned long lastAck;
-unsigned long lastSent;
-int lastRssi;      // dBm
-int lastRoundtrip; // ms
-int lastVcc;       // mV
-int sinceLastAck;  // sec
-long avgTickDelay;   // ms
-long avgSendDelay;   // ms
-long ticks;
-long sends;
-
-bool disableLogging = false;
-
-const unsigned long MIN_SEND_WAIT = 100;  // in ms
-const unsigned long MAX_SEND_WAIT = 1000; // in ms
-const unsigned long TIMEOUT_WAIT = 1000;  // in ms
-const unsigned long UPDATE_WAIT = 500;    // in ms
 
 void onMessageReceived(Message *msg) {
     unsigned long ack = millis();
@@ -359,85 +528,9 @@ void setup() {
     radio->listen(onMessageReceived);
 
     pipe = new Pipeline();
-
-    Ack = new Stat(10, 10, 50, 10, 10, 90);
-    Ack->setLabel("ack");
-    pipe->push(drawLabelForwarder, Ack);
-
-    Lag = new Stat(120, 10, 170, 10, 10, 90);
-    Lag->setLabel("lag");
-    Lag->setUnit("ms");
-    Lag->setColor(ILI9341_BLUE);
-    pipe->push(drawLabelForwarder, Lag);
-    pipe->push(drawChartForwarder, Lag);
-
-    Rssi = new Stat(10, 30, 10, 30, 10, 125);
-    Rssi->setLabel("rssi");
-    Rssi->setHideLabel(true);
-    Rssi->setUnit("dBm");
-    Rssi->setColor(ILI9341_PURPLE);
-    Rssi->setInvert(true);
-    pipe->push(drawLabelForwarder, Rssi);
-    pipe->push(drawChartForwarder, Rssi);
-
-    Rrssi = new Stat(120, 30, 120, 30, 10, 160);
-    Rrssi->setLabel("rrssi");
-    Rrssi->setHideLabel(true);
-    Rrssi->setUnit("dBm");
-    Rrssi->setColor(ILI9341_CYAN);
-    Rrssi->setInvert(true);
-    pipe->push(drawLabelForwarder, Rrssi);
-    pipe->push(drawChartForwarder, Rrssi);
-
-    Vcc = new Stat(10, 50, 50, 50, 10, 195);
-    Vcc->setChartWidth(130);
-    Vcc->setLabel("vcc");
-    Vcc->setUnit("mV");
-    Vcc->setColor(ILI9341_RED);
-    pipe->push(drawLabelForwarder, Vcc);
-    pipe->push(drawChartForwarder, Vcc);
-
-    Rvcc = new Stat(120, 50, 170, 50, 120, 195);
-    Rvcc->setChartWidth(130);
-    Rvcc->setLabel("rvcc");
-    Rvcc->setUnit("mV");
-    Rvcc->setColor(ILI9341_ORANGE);
-    pipe->push(drawLabelForwarder, Rvcc);
-    pipe->push(drawChartForwarder, Rvcc);
-
-    Vib = new Stat(10, 70, 50, 70, 10, 230);
-    Vib->setLabel("vib");
-    Vib->setColor(ILI9341_GREEN);
-    pipe->push(drawLabelForwarder, Vib);
-    pipe->push(drawChartForwarder, Vib);
-
-    Altitude = new Stat(120, 70, 170, 70, 10, 230);
-    Altitude->setLabel("alt");
-    Altitude->setUnit("m");
-    pipe->push(drawLabelForwarder, Altitude);
-
-    Settings = new Button(Point{x: 10, y: 280}, Size{w: 150, h: 30});
-    Settings->setLabel("Settings");
-    pipe->push(drawButtonForwarder, Settings);
+    pipe->segueTo(new DashboardViewController());
 }
 
-void scheduleDraw() {
-    pipe->push(drawValueForwarder, Ack);
-    pipe->push(drawValueForwarder, Lag);
-    pipe->push(drawValueForwarder, Vib);
-    pipe->push(drawValueForwarder, Rssi);
-    pipe->push(drawValueForwarder, Vcc);
-    pipe->push(drawValueForwarder, Rvcc);
-    pipe->push(drawValueForwarder, Rrssi);
-    pipe->push(drawValueForwarder, Altitude);
-
-    pipe->push(drawChartForwarder, Lag);
-    pipe->push(drawChartForwarder, Vib);
-    pipe->push(drawChartForwarder, Rssi);
-    pipe->push(drawChartForwarder, Vcc);
-    pipe->push(drawChartForwarder, Rvcc);
-    pipe->push(drawChartForwarder, Rrssi);
-}
 
 void writeLog() {
     if (disableLogging) {
@@ -532,9 +625,11 @@ void loop() {
         Serial.println("ms");
     }
 
+    // Tick.
     radio->tick();
     pipe->tick();
-    Settings->tick();
+
+    // Send helo.
     diff = tick - lastSent;
     if ((lastAck < lastSent && diff > MAX_SEND_WAIT)
         || diff > MIN_SEND_WAIT
@@ -552,8 +647,11 @@ void loop() {
         Message msg("helo");
         radio->send(&msg);
     }
+
+    // Update metrics.
+    // TODO: This should probably happen after radio->tick but before pipe->tick.
     if (tick - lastUpdate > UPDATE_WAIT) {
-        lastUpdate = millis();
+        lastUpdate = tick;
         lastVcc = readVcc();
 
         sinceLastAck = (int) lround((lastUpdate - lastAck) / 1000.0);
@@ -564,19 +662,10 @@ void loop() {
             lastRssi = NO_READING_INT;
         }
 
-        Ack->set(sinceLastAck);
-        Vcc->set(lastVcc);
-        Lag->set(lastRoundtrip);
-        Rssi->set(lastRssi);
-
-        Rvcc->set(remote.lastVcc);
-        Vib->set(remote.lastVibration);
-        Rrssi->set(remote.lastRssi);
-        Altitude->set(remote.lastAltitude);
-
         writeLog();
-        scheduleDraw();
     }
+
+    // Serial commands.
     if (Serial.available()) {
         String cmd = Serial.readStringUntil('\n');
         if (cmd[0] == 'D') {
@@ -610,6 +699,7 @@ void loop() {
             } while (read > 0);
             Serial.println();
             dataFile.close();
+
         } else if (cmd[0] == 'I') {
             Serial.print(F("Average tick delay: "));
             Serial.print(avgTickDelay);
