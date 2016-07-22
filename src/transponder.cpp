@@ -22,21 +22,29 @@ Adafruit_L3GD20_Unified       gyro  = Adafruit_L3GD20_Unified(20);
 
 uint8_t piezoSensor = A0;
 
-unsigned long lastMessage;
+unsigned long lastTick = 0;
+long ticks = 0;
+long avgTickDelay;
+long updates;
+long avgUpdateDelay;
+unsigned long lastUpdate;
+unsigned long lastReceipt;
+
+const long UPDATE_WAIT = 50;    // in ms
 
 metrics m;
 
 void initSensors() {
-    if(!accel.begin()) {
+    if (!accel.begin()) {
         Serial.println(F("LSM303 not found"));
     }
-    if(!mag.begin()) {
+    if (!mag.begin()) {
         Serial.println(F("LSM303 not found"));
     }
-    if(!bmp.begin()) {
+    if (!bmp.begin()) {
         Serial.println(F("BMP180 not found"));
     }
-    if(!gyro.begin()) {
+    if (!gyro.begin()) {
         Serial.println(F("L3GD20 not found"));
     }
 
@@ -45,30 +53,23 @@ void initSensors() {
 }
 
 void onMessageReceived(Message *msg) {
-    lastMessage = micros();
+    lastReceipt = micros();
     m.lastRssi = msg->rssi;
 
     char ack[PACKED_SIZE];
     size_t s = pack(m, ack);
 
+#ifdef DEBUGV
     Serial.print(F("sending "));
     Serial.print(s);
     Serial.println(F(" bytes"));
+#endif
+
     Message resp(ack, s);
     radio->send(&resp);
 }
 
-void setup() {
-    Serial.begin(38400);
-    Serial.println(F("transponder"));
-    radio = new CC1101Radio();
-    radio->listen(onMessageReceived);
-    initSensors();
-}
-
-void loop() {
-    radio->tick();
-
+void update() {
     m.lastVibration = analogRead(piezoSensor);
     m.lastVcc = readVcc();
 
@@ -114,7 +115,7 @@ void loop() {
 #ifdef DEBUGV
 
         Serial.print(F("Alt: "));
-        Serial.print(lastAltitude);
+        Serial.print(m.lastAltitude);
         Serial.println(F("m"));
         Serial.print(F("Temp: "));
         Serial.print(temperature);
@@ -130,25 +131,53 @@ void loop() {
     }
 
     gyro.getEvent(&gyro_event);
-    if (gyro_event.gyro.status) {
-        m.lastGyroX = gyro_event.gyro.x;
-        m.lastGyroY = gyro_event.gyro.y;
-        m.lastGyroZ = gyro_event.gyro.z;
+    m.lastGyroX = gyro_event.gyro.x;
+    m.lastGyroY = gyro_event.gyro.y;
+    m.lastGyroZ = gyro_event.gyro.z;
 #ifdef DEBUGV
 
-        Serial.print(F("X: ")); Serial.print(gyro_event.gyro.x); Serial.print(F("  "));
-        Serial.print(F("Y: ")); Serial.print(gyro_event.gyro.y); Serial.print(F("  "));
-        Serial.print(F("Z: ")); Serial.print(gyro_event.gyro.z); Serial.print(F("  "));
-        Serial.println(F("rad/s "));
+    Serial.print(F("X: ")); Serial.print(gyro_event.gyro.x); Serial.print(F("  "));
+    Serial.print(F("Y: ")); Serial.print(gyro_event.gyro.y); Serial.print(F("  "));
+    Serial.print(F("Z: ")); Serial.print(gyro_event.gyro.z); Serial.print(F("  "));
+    Serial.println(F("rad/s "));
 #endif
-    } else {
-        m.lastGyroX = NO_READING_FLOAT;
-        m.lastGyroY = NO_READING_FLOAT;
-        m.lastGyroZ = NO_READING_FLOAT;
-#ifdef DEBUGV
+}
 
-        Serial.println(F("Unable to read gyro"));
-#endif
+void setup() {
+    Serial.begin(38400);
+    Serial.println(F("transponder"));
+    radio = new CC1101Radio();
+    radio->listen(onMessageReceived);
+    initSensors();
+}
+
+void loop() {
+    unsigned long tick = millis();
+    long diff = tick - lastTick;
+    ticks++;
+    avgTickDelay = avgTickDelay + ((diff - avgTickDelay) / ticks);
+    lastTick = tick;
+
+    radio->tick();
+
+    diff = tick - lastUpdate;
+    if (diff >= UPDATE_WAIT) {
+        updates++;
+        avgUpdateDelay = avgUpdateDelay + ((diff - avgUpdateDelay) / updates);
+        lastUpdate = tick;
+        update();
+    }
+
+    if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        if (cmd[0] == 'I') {
+            Serial.print(F("Average tick delay: "));
+            Serial.print(avgTickDelay);
+            Serial.println(F("ms"));
+            Serial.print(F("Average update delay: "));
+            Serial.print(avgUpdateDelay);
+            Serial.println(F("ms"));
+        }
     }
 }
 

@@ -15,6 +15,9 @@
 #define TFT_CS 5
 #define SD_CS 4
 
+class Stat;
+void drawChartForwarder(void* context);
+
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
 class Stat {
@@ -35,8 +38,9 @@ private:
     bool _invertChart = false;
     int _min = 0;
     int _max = 0;
+    short _cur = 0;
     short _end = 0;
-    int _chartColor = ILI9341_RED;
+    uint16_t _chartColor = ILI9341_RED;
 
 
 public:
@@ -64,7 +68,7 @@ public:
     }
 
     void setColor(int color) {
-        _chartColor = color;
+        _chartColor = (uint16_t) color;
     }
 
     void setInvert(bool invert) {
@@ -87,14 +91,16 @@ public:
             _min = 0;
             _max = 0;
         }
-        if (abs(stat) < _min || _min == 0) {
-            _min = abs(stat);
-            if (_min > 0) {
-                _min--;
+        if (validReadingi(stat)) {
+            if (abs(stat) < _min || _min == 0) {
+                _min = abs(stat);
+                if (_min > 0) {
+                    _min--;
+                }
+            } else if (abs(stat) > _max) {
+                _redrawChart = true;
+                _max = abs(stat) + 1;
             }
-        } else if (abs(stat) > _max) {
-            _redrawChart = true;
-            _max = abs(stat)+1;
         }
         _historical[_end] = stat;
     }
@@ -111,7 +117,12 @@ public:
 
     void drawValue() {
         char val[8];
-        int chars = sprintf(val, "%d", _stat);
+        int chars;
+        if (validReadingi(_stat)) {
+            chars = sprintf(val, "%d", _stat);
+        } else {
+            chars = sprintf(val, "-- ");
+        }
         int drawWidth = (chars * 12);
         tft.setCursor(_value.x, _value.y+1);
         tft.setTextColor(ILI9341_WHITE, 0x2104);
@@ -127,14 +138,15 @@ public:
     }
 
     void drawChart() {
-
         if (_redrawChart) {
-            tft.fillRect(_chart.x, _chart.y, _chartWidth, 31 /* to catch the bottom of the unit on the axis */, ILI9341_BLACK);
-            tft.setCursor(_chart.x+27-(strlen(_labelText)*6), _chart.y+12);
+            _cur = 0;
+            tft.fillRect(_chart.x, _chart.y, _chartWidth, 31 /* to catch the bottom of the unit on the axis */,
+                         ILI9341_BLACK);
+            tft.setCursor(_chart.x + 27 - ((int16_t) strlen(_labelText) * 6), _chart.y + 12);
             tft.setTextColor(ILI9341_WHITE);
             tft.setTextSize(1);
             tft.print(_labelText);
-            tft.setCursor(_chart.x+_chartWidth-45, _chart.y);
+            tft.setCursor(_chart.x + _chartWidth - 45, _chart.y);
             if (_invertChart) {
                 tft.print("-");
                 tft.print(_min);
@@ -144,11 +156,11 @@ public:
 
             if (_unitText) {
                 tft.setTextColor(_chartColor);
-                tft.setCursor(_chart.x + _chartWidth-45, _chart.y + 12);
+                tft.setCursor(_chart.x + _chartWidth - 45, _chart.y + 12);
                 tft.print(_unitText);
                 tft.setTextColor(ILI9341_WHITE);
             }
-            tft.setCursor(_chart.x + _chartWidth-45, _chart.y+24);
+            tft.setCursor(_chart.x + _chartWidth - 45, _chart.y + 24);
             if (_invertChart) {
                 tft.print("-");
                 tft.print(_max);
@@ -157,37 +169,35 @@ public:
             }
             tft.setTextSize(2);
             _redrawChart = false;
-            tft.fillRect(_chart.x+30, _chart.y, _chartWidth-80, 30, 0x2104);
-            for (int i = 0; i < _end; i++) {
-                float norm = ((float) abs(_historical[i]))/(_max);
-                int x = _chart.x+30+i;
-                int y;
-                if (!_invertChart) {
-                    y = _chart.y+29-(round(norm*29));
-                } else {
-                    y = _chart.y+(round(norm*29));
-                }
-                if (y < _chart.y || y > _chart.y+29) {
-                    continue;
-                }
-                tft.fillRect(x, y, 1, 1, _chartColor);
+            tft.fillRect(_chart.x + 30, _chart.y, _chartWidth - 80, 30, 0x2104);
+        }
+
+        if (_cur < _end) {
+            if (invalidReadingi(_historical[_cur])) {
+                tft.drawFastVLine(_chart.x+30+_cur, _chart.y, 30, ILI9341_MAROON);
+                goto pipeNext;
             }
-        } else {
-            int i = _end;
-            float norm = ((float) abs(_historical[i]))/(_max);
-            int x = _chart.x+30+i;
+            float norm = ((float) abs(_historical[_cur]))/(_max);
+            int x = _chart.x+30+_cur;
             int y;
             if (!_invertChart) {
-                y = _chart.y+29-(round(norm*29));
+                y = _chart.y+29-((int) round(norm*29));
             } else {
-                y = _chart.y+(round(norm*29));
+                y = _chart.y+((int) round(norm*29));
             }
             if (y < _chart.y || y > _chart.y+29) {
-                return;
+                goto pipeNext;
             }
             tft.fillRect(x, y, 1, 1, _chartColor);
         }
 
+        pipeNext:
+        if (_cur < _end) {
+            _cur++;
+        }
+        if (_cur < _end) {
+            pipe->push(drawChartForwarder, this);
+        }
     }
 };
 
@@ -222,42 +232,58 @@ SdFile dataFile;
 
 metrics remote;
 
+unsigned long lastTick;
 unsigned long lastUpdate;
 unsigned long lastAck;
-unsigned long lastSent = 0;
+unsigned long lastSent;
 int lastRssi;      // dBm
 int lastRoundtrip; // ms
 int lastVcc;       // mV
 int sinceLastAck;  // sec
+long avgTickDelay;   // ms
+long avgSendDelay;   // ms
+long ticks;
+long sends;
 
 bool disableLogging = false;
 
-const unsigned long SEND_WAIT = 1000;  // in ms
-const unsigned long UPDATE_WAIT = 500; // in ms
+const unsigned long MIN_SEND_WAIT = 100;  // in ms
+const unsigned long MAX_SEND_WAIT = 1000; // in ms
+const unsigned long TIMEOUT_WAIT = 1000;  // in ms
+const unsigned long UPDATE_WAIT = 500;    // in ms
 
 void onMessageReceived(Message *msg) {
-    lastAck = millis();
-    lastRssi = msg->rssi;
-    lastRoundtrip = (int) (lastAck-lastSent);
-    Serial.print("received ");
+    unsigned long ack = millis();
+
     const char *body = msg->getBody();
+#ifdef DEBUGV
+    Serial.print("received ");
     Serial.print(msg->size);
     Serial.println(" bytes");
+#endif
     // expects "ack<data>"
     if (body[0] != 'a' || body[1] != 'c' || body[2] != 'k') {
         Serial.println("received non-ack or malformed");
         return;
     }
 
-    unpack((char *)body, remote);
+    lastAck = ack;
+    lastRssi = msg->rssi;
+    lastRoundtrip = (int) (lastAck-lastSent);
 
-    Serial.print("round trip ");
-    Serial.print(lastRoundtrip);
-    Serial.println("ms");
+    unpack((char *)body, remote);
 }
 
 #ifdef DEBUG
 void printCardInfo() {
+    Serial.print(F("Data logging is "));
+    if (disableLogging) {
+        Serial.println(F("DISABLED"));
+    } else {
+        Serial.println(F("ENABLED"));
+    }
+    Serial.println();
+
     Serial.print("\nCard type: ");
     switch (card.type()) {
         case SD_CARD_TYPE_SD1:
@@ -284,8 +310,6 @@ void printCardInfo() {
     Serial.print("Volume size: ");
     Serial.print(volumesize, DEC);
     Serial.println("MB");
-
-    root.openRoot(volume);
 
     Serial.println("name\tdate\tsize");
     root.ls(LS_R | LS_DATE | LS_SIZE);
@@ -316,25 +340,23 @@ void setup() {
         disableLogging = true;
     }
 
-    radio = new CC1101Radio();
-    radio->listen(onMessageReceived);
-
 #ifdef DEBUG
-    if (disableLogging) {
-        Serial.println(F("Cannot print SD card info, logging disabled"));
-    } else {
-        printCardInfo();
-    }
+    printCardInfo();
 #endif
 
     if (!disableLogging) {
-        if (dataFile.open(root, "DATA.TXT", O_CREAT | O_TRUNC)) {
-            dataFile.close();
-        } else {
-            Serial.println(F("Unable to create log file, disabling data logger."));
+        if (!dataFile.open(root, "DATA.TXT", O_CREAT | O_WRITE)) {
+            dataFile.open(root, "DATA.TXT", O_TRUNC | O_WRITE);
+        }
+        if (!dataFile.truncate(0)) {
+            Serial.println(F("Unable to create or truncate log file, disabling data logger."));
             disableLogging = true;
         }
+        dataFile.sync();
     }
+
+    radio = new CC1101Radio();
+    radio->listen(onMessageReceived);
 
     pipe = new Pipeline();
 
@@ -422,11 +444,13 @@ void writeLog() {
         return;
     }
 
-    if (!dataFile.open(root, "DATA.TXT", O_APPEND | O_WRITE)) {
+    if (!dataFile.isOpen()) {
+        if (!dataFile.open(root, "DATA.TXT", O_WRITE | O_APPEND)) {
 #ifdef DEBUG
-        Serial.println(F("Could not open file for writing"));
+            Serial.println(F("Could not open file for writing"));
 #endif
-        return;
+            return;
+        }
     }
 
     // Local sensor readings
@@ -436,11 +460,11 @@ void writeLog() {
     dataFile.print(F("\t"));
     dataFile.print(lastVcc);
     dataFile.print(F("\t"));
-    if (lastRoundtrip != NO_READING_INT) {
+    if (validReadingi(lastRoundtrip)) {
         dataFile.print(lastRoundtrip);
     }
     dataFile.print(F("\t"));
-    if (lastRssi != NO_READING_INT) {
+    if (validReadingi(lastRssi)) {
         dataFile.print(lastRssi);
     }
     dataFile.print(F("\t"));
@@ -490,26 +514,51 @@ void writeLog() {
         dataFile.print(remote.lastGyroZ);
     }
     dataFile.println(F("\t"));
-    dataFile.close();
+    dataFile.sync();
 }
 
+int printTicks;
+int printTicksI;
+
 void loop() {
+    unsigned long tick = millis();
+    long diff = tick - lastTick;
+    ticks++;
+    avgTickDelay = avgTickDelay + ((diff - avgTickDelay) / ticks);
+    lastTick = tick;
+    if (printTicks > printTicksI) {
+        Serial.print("tick delay: ");
+        Serial.print(diff);
+        Serial.println("ms");
+    }
+
     radio->tick();
     pipe->tick();
     Settings->tick();
-    if (millis() - lastSent > SEND_WAIT) {
-        Serial.println(F("sending helo"));
+    diff = tick - lastSent;
+    if ((lastAck < lastSent && diff > MAX_SEND_WAIT)
+        || diff > MIN_SEND_WAIT
+    ) {
+        sends++;
+        avgSendDelay = avgSendDelay + ((diff - avgSendDelay) / sends);
+        lastSent = tick;
+        if (printTicks > printTicksI) {
+            printTicksI++;
+            Serial.print("send delay: ");
+            Serial.print(diff);
+            Serial.println("ms");
+        }
+
         Message msg("helo");
-        lastSent = millis();
         radio->send(&msg);
     }
-    if (millis() - lastUpdate > UPDATE_WAIT) {
+    if (tick - lastUpdate > UPDATE_WAIT) {
         lastUpdate = millis();
         lastVcc = readVcc();
 
         sinceLastAck = (int) lround((lastUpdate - lastAck) / 1000.0);
 
-        if (lastAck < lastSent) {
+        if (lastAck + TIMEOUT_WAIT < lastSent) {
             remote.setNoReading();
             lastRoundtrip = NO_READING_INT;
             lastRssi = NO_READING_INT;
@@ -527,6 +576,50 @@ void loop() {
 
         writeLog();
         scheduleDraw();
+    }
+    if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        if (cmd[0] == 'D') {
+            dataFile.close();
+            if (!dataFile.open(root, "DATA.TXT", O_READ)) {
+                Serial.println();
+                Serial.println("Could not open file for reading");
+                return;
+            }
+            uint32_t offset;
+            long cmdOffset = cmd.substring(1).toInt();
+            if (cmdOffset < 0) {
+                offset = dataFile.fileSize() + cmdOffset;
+            } else {
+                offset = cmdOffset;
+            }
+            dataFile.seekSet(offset);
+            char buf[128];
+            int16_t read;
+            bool firstRead = true;
+            do {
+                read = dataFile.read(buf, 127);
+                buf[read] = 0;
+                if (firstRead && read > 0) {
+                    firstRead = false;
+                    char *firstNewline = strchr(buf, '\n');
+                    Serial.print(++firstNewline);
+                } else {
+                    Serial.print(buf);
+                }
+            } while (read > 0);
+            Serial.println();
+            dataFile.close();
+        } else if (cmd[0] == 'I') {
+            Serial.print(F("Average tick delay: "));
+            Serial.print(avgTickDelay);
+            Serial.println(F("ms"));
+            Serial.print(F("Average send delay: "));
+            Serial.print(avgSendDelay);
+            Serial.println(F("ms"));
+            printTicks = (int) cmd.substring(1).toInt();
+            printTicksI = 0;
+        }
     }
 }
 

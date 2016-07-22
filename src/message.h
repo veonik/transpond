@@ -10,6 +10,8 @@ const float NO_READING_FLOAT = NAN;
 
 #define validReadingf(f) f != NO_READING_FLOAT
 #define validReadingi(i) i != NO_READING_INT
+#define invalidReadingf(f) f == NO_READING_FLOAT
+#define invalidReadingi(i) i == NO_READING_INT
 
 struct metrics {
     // no unit; raw sensor data
