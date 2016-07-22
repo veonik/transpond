@@ -58,6 +58,8 @@ const long MAX_SEND_WAIT = 1000; // in ms
 const long TIMEOUT_WAIT = 1000;  // in ms
 const long UPDATE_WAIT = 500;    // in ms
 
+const char *LOG_FILE = "DATA.TXT";
+
 class Stat : public Control {
 private:
     Point _value;
@@ -514,8 +516,8 @@ void setup() {
 #endif
 
     if (!disableLogging) {
-        if (!dataFile.open(root, "DATA.TXT", O_CREAT | O_WRITE)) {
-            dataFile.open(root, "DATA.TXT", O_TRUNC | O_WRITE);
+        if (!dataFile.open(root, LOG_FILE, O_CREAT | O_WRITE)) {
+            dataFile.open(root, LOG_FILE, O_TRUNC | O_WRITE);
         }
         if (!dataFile.truncate(0)) {
             Serial.println(F("Unable to create or truncate log file, disabling data logger."));
@@ -538,7 +540,7 @@ void writeLog() {
     }
 
     if (!dataFile.isOpen()) {
-        if (!dataFile.open(root, "DATA.TXT", O_WRITE | O_APPEND)) {
+        if (!dataFile.open(root, LOG_FILE, O_WRITE | O_APPEND)) {
 #ifdef DEBUG
             Serial.println(F("Could not open file for writing"));
 #endif
@@ -670,7 +672,7 @@ void loop() {
         String cmd = Serial.readStringUntil('\n');
         if (cmd[0] == 'D') {
             dataFile.close();
-            if (!dataFile.open(root, "DATA.TXT", O_READ)) {
+            if (!dataFile.open(root, LOG_FILE, O_READ)) {
                 Serial.println();
                 Serial.println("Could not open file for reading");
                 return;
