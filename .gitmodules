@@ -1,9 +1,6 @@
 [submodule "lib/Adafruit_ILI9341"]
 	path = lib/Adafruit_ILI9341
 	url = https://github.com/adafruit/Adafruit_ILI9341.git
-[submodule "lib/Adafruit-GFX"]
-	path = lib/Adafruit-GFX
-	url = https://github.com/adafruit/Adafruit-GFX-LIbrary.git
 [submodule "lib/cc1101"]
 	path = lib/cc1101
 	url = https://github.com/veonik/arduino-cc1101.git
@@ -27,4 +24,4 @@
 	url = https://github.com/adafruit/Adafruit_BMP085_Unified.git
 [submodule "lib/Touch_Screen"]
 	path = lib/Touch_Screen
-	url = https://github.com/Seeed-Studio/Touch_Screen_Driver.git
+	url = https://github.com/veonik/Touch_Screen_Driver.git

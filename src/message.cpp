@@ -76,9 +76,17 @@ size_t pack(metrics m, char *bytes) {
 }
 
 size_t unpack(const char *bytes, metrics &m) {
-    m.lastVibration = word(bytes[3], bytes[4]);
-    m.lastRssi = word(bytes[5], bytes[6]);
-    m.lastVcc = word(bytes[7], bytes[8]);
+    mval.bytes[0] = bytes[3];
+    mval.bytes[1] = bytes[4];
+    m.lastVibration = mval.i;
+
+    mval.bytes[0] = bytes[5];
+    mval.bytes[1] = bytes[6];
+    m.lastRssi = mval.i;
+
+    mval.bytes[0] = bytes[7];
+    mval.bytes[1] = bytes[8];
+    m.lastVcc = mval.i;
 
     mval.bytes[0] = bytes[9];
     mval.bytes[1] = bytes[10];
