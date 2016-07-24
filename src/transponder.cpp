@@ -20,6 +20,11 @@ Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
 Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 Adafruit_L3GD20_Unified       gyro  = Adafruit_L3GD20_Unified(20);
 
+bool accelEnabled = true;
+bool magEnabled = true;
+bool bmpEnabled = true;
+bool gyroEnabled = true;
+
 uint8_t piezoSensor = A0;
 
 unsigned long lastTick = 0;
@@ -37,19 +42,25 @@ metrics m;
 void initSensors() {
     if (!accel.begin()) {
         Serial.println(F("LSM303 not found"));
+        accelEnabled = false;
     }
     if (!mag.begin()) {
         Serial.println(F("LSM303 not found"));
+        magEnabled = false;
+    } else {
+        mag.enableAutoRange(true);
     }
     if (!bmp.begin()) {
         Serial.println(F("BMP180 not found"));
+        bmpEnabled = false;
     }
-    if (!gyro.begin()) {
+    // TODO: gyro.begin() never returns if the gyro is not connected.
+    if ((!magEnabled && !accelEnabled && !bmpEnabled) || !gyro.begin()) {
         Serial.println(F("L3GD20 not found"));
+        gyroEnabled = false;
+    } else {
+        gyro.enableAutoRange(true);
     }
-
-    gyro.enableAutoRange(true);
-    mag.enableAutoRange(true);
 }
 
 void onMessageReceived(Message *msg) {
@@ -79,10 +90,12 @@ void update() {
     sensors_event_t gyro_event;
     sensors_vec_t   orientation;
 
-    accel.getEvent(&accel_event);
-    mag.getEvent(&mag_event);
-
-    if (dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)) {
+    if (accelEnabled
+        && magEnabled
+        && accel.getEvent(&accel_event)
+        && mag.getEvent(&mag_event)
+        && dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)
+    ) {
         m.lastRoll = orientation.roll;
         m.lastPitch = orientation.pitch;
         m.lastHeading = orientation.heading;
@@ -106,8 +119,7 @@ void update() {
 #endif
     }
 
-    bmp.getEvent(&bmp_event);
-    if (bmp_event.pressure) {
+    if (bmpEnabled && bmp.getEvent(&bmp_event) && bmp_event.pressure) {
         float temperature;
         bmp.getTemperature(&temperature);
         m.lastTemp = temperature;
@@ -130,17 +142,26 @@ void update() {
 #endif
     }
 
-    gyro.getEvent(&gyro_event);
-    m.lastGyroX = gyro_event.gyro.x;
-    m.lastGyroY = gyro_event.gyro.y;
-    m.lastGyroZ = gyro_event.gyro.z;
+    if (gyroEnabled && gyro.getEvent(&gyro_event)) {
+        m.lastGyroX = gyro_event.gyro.x;
+        m.lastGyroY = gyro_event.gyro.y;
+        m.lastGyroZ = gyro_event.gyro.z;
 #ifdef DEBUGV
 
-    Serial.print(F("X: ")); Serial.print(gyro_event.gyro.x); Serial.print(F("  "));
-    Serial.print(F("Y: ")); Serial.print(gyro_event.gyro.y); Serial.print(F("  "));
-    Serial.print(F("Z: ")); Serial.print(gyro_event.gyro.z); Serial.print(F("  "));
-    Serial.println(F("rad/s "));
+        Serial.print(F("X: ")); Serial.print(gyro_event.gyro.x); Serial.print(F("  "));
+        Serial.print(F("Y: ")); Serial.print(gyro_event.gyro.y); Serial.print(F("  "));
+        Serial.print(F("Z: ")); Serial.print(gyro_event.gyro.z); Serial.print(F("  "));
+        Serial.println(F("rad/s "));
 #endif
+    } else {
+        m.lastGyroX = NO_READING_FLOAT;
+        m.lastGyroY = NO_READING_FLOAT;
+        m.lastGyroZ = NO_READING_FLOAT;
+#ifdef DEBUGV
+
+        Serial.println(F("Unable to read gyro"));
+#endif
+    }
 }
 
 void setup() {

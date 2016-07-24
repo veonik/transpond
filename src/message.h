@@ -8,9 +8,9 @@ const size_t PACKED_SIZE = 42;
 const int NO_READING_INT = INT_MAX;
 const float NO_READING_FLOAT = NAN;
 
-#define validReadingf(f) f != NO_READING_FLOAT
+#define validReadingf(f) !isnan(f)
 #define validReadingi(i) i != NO_READING_INT
-#define invalidReadingf(f) f == NO_READING_FLOAT
+#define invalidReadingf(f) isnan(f)
 #define invalidReadingi(i) i == NO_READING_INT
 
 struct metrics {

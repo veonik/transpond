@@ -5,6 +5,12 @@
 #include <Adafruit_ILI9341.h>
 #include <SeeedTouchScreen.h>
 
+#include "Inconsolata_g5pt7b.h"
+#include "Inconsolata_g8pt7b.h"
+
+#define CURSOR_Y_SMALL 6
+#define CURSOR_Y_LARGE 13
+
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // mega
 #define YP A2   // must be an analog pin, use "An" notation!
 #define XM A1   // must be an analog pin, use "An" notation!
@@ -36,8 +42,8 @@ struct Point {
 };
 
 struct Size {
-    short w;
-    short h;
+    int w;
+    int h;
 };
 
 class ViewController {
@@ -60,13 +66,10 @@ private:
     short _push = 0;
     bool _draining = false;
 
-    ViewController *_lastViewController;
     ViewController *_viewController;
 
 public:
     void segueTo(ViewController *nextController);
-
-    void segueBack();
 
     void push(tickCallback fn, void *context);
 
@@ -95,6 +98,10 @@ private:
     const char *_label;
 
 public:
+    int fontSize = 1;
+    uint16_t fontColor = ILI9341_WHITE;
+    uint16_t bgColor = ILI9341_BLACK;
+
     Label(Point pos, Size siz) : Control(pos, siz) { }
 
     void setLabel(const char *label);
@@ -114,6 +121,11 @@ private:
     byte _touching = 0;
 
 public:
+    int fontSize = 1;
+    uint16_t fontColor = ILI9341_WHITE;
+    uint16_t bgColor = ILI9341_BLACK;
+    uint16_t touchColor = ILI9341_DARKGREY;
+
     Button(Point pos, Size siz) : Control(pos, siz) { }
 
     void setLabel(const char *label);
