@@ -1,4 +1,4 @@
-#if !defined(_SETTINGS_H_) && !defined(TRANSPONDER)
+#ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
 #include "gui.h"

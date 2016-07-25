@@ -12,10 +12,9 @@ install:
 
 script:
   - rm -rf lib/Adafruit-GFX/{Fonts,fontconvert}
-  - platformio run -e uno
-  - platformio run -e nano
-  - platformio run -e mega
+  - platformio run -e $PLATFORMIO_ENV
 
 env:
-  - PLATFORMIO_BUILD_FLAGS="-DTRANSPONDER"
-  - PLATFORMIO_BUILD_FLAGS="-DHANDSET"
+  - PLATFORMIO_BUILD_FLAGS="-DTRANSPONDER" PLATFORMIO_ENV=nano
+  - PLATFORMIO_BUILD_FLAGS="-DTRANSPONDER" PLATFORMIO_ENV=uno
+  - PLATFORMIO_BUILD_FLAGS="-DHANDSET" PLATFORMIO_ENV=mega
