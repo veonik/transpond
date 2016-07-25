@@ -1,6 +1,7 @@
 #include "settings.h"
 #include "dashboard.h"
 #include "graphics_test.h"
+#include "position.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
@@ -8,6 +9,7 @@ extern Pipeline *pipe;
 void SettingsViewController::tick() {
     _btnExit->tick();
     _btnGraphicsTest->tick();
+    _btnPosition->tick();
 }
 
 void SettingsViewController::draw() {
@@ -30,4 +32,11 @@ void SettingsViewController::init() {
         pipe->segueTo(new GraphicsTestViewController());
     }, NULL);
     pipe->push(drawControlForwarder, _btnGraphicsTest);
+
+    _btnPosition = new Button(Point{x: 10, y: 50}, Size{w: 150, h: 30});
+    _btnPosition->setLabel("Positioning");
+    _btnPosition->then([](void *context) {
+        pipe->segueTo(new PositionViewController());
+    }, NULL);
+    pipe->push(drawControlForwarder, _btnPosition);
 }

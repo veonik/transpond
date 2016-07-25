@@ -284,7 +284,20 @@ void loop() {
         lastUpdate = tick;
         lastVcc = readVcc();
 
-        sinceLastAck = (int) lround((lastUpdate - lastAck) / 1000.0);
+        sinceLastAck = (int) floor((lastUpdate - lastAck) / 1000.0);
+        if (sinceLastAck < 0) {
+#ifdef DEBUG
+            Serial.println("sinceLastAck less than 0");
+            Serial.print("round((");
+            Serial.print(lastUpdate);
+            Serial.print(" - ");
+            Serial.print(lastAck);
+            Serial.print(") / 1000.0) = ");
+            Serial.println(sinceLastAck);
+#endif
+
+            sinceLastAck = 0;
+        }
 
         if (lastAck + TIMEOUT_WAIT < lastSent) {
             remote.setNoReading();

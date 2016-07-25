@@ -29,6 +29,8 @@ void drawChartForwarder(void* context) {
 
 void DashboardViewController::tick() {
     _btnSettings->tick();
+    _btnProgram->tick();
+    _btnClear->tick();
 
     if (_lastUpdate < lastUpdate) {
         _ack->set(sinceLastAck);
@@ -62,14 +64,30 @@ void DashboardViewController::init() {
     bgColor = ILI9341_BLACK;
     pipe->push(drawViewControllerForwarder, this);
 
-    _btnSettings = new Button(Point{x: 10, y: 280}, Size{w: 150, h: 30});
+    _btnSettings = new Button(Point{x: 10, y: 280}, Size{w: 60, h: 30});
     _btnSettings->bgColor = tft.color565(75, 75, 75);
-    _btnSettings->setLabel("Settings");
+    _btnSettings->setLabel("SET");
     _btnSettings->then([](void *context) {
         Serial.println("Clicked settings button!");
         pipe->segueTo(new SettingsViewController());
     }, NULL);
     pipe->push(drawControlForwarder, _btnSettings);
+
+    _btnProgram = new Button(Point{x: 80, y: 280}, Size{w: 60, h: 30});
+    _btnProgram->bgColor = tft.color565(75, 75, 75);
+    _btnProgram->setLabel("PROG");
+    _btnProgram->then([](void *context) {
+        Serial.println("Clicked program button!");
+    }, NULL);
+    pipe->push(drawControlForwarder, _btnProgram);
+
+    _btnClear = new Button(Point{x: 170, y: 280}, Size{w: 60, h: 30});
+    _btnClear->bgColor = tft.color565(75, 75, 75);
+    _btnClear->setLabel("CLR");
+    _btnClear->then([](void *context) {
+        Serial.println("Clicked clear button!");
+    }, NULL);
+    pipe->push(drawControlForwarder, _btnClear);
 
     _ack = new Stat(10, 10, 50, 10, 10, 90);
     _ack->setLabel("ack");

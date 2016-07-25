@@ -32,6 +32,8 @@ void Pipeline::push(tickCallback fn, void *context) {
 #endif
 }
 
+Control::~Control() { }
+
 void Pipeline::tick() {
     if (_viewController) {
         _viewController->tick();
@@ -90,6 +92,7 @@ void Button::tick() {
     } else if (_touching > 0) {
         _touching = 0;
         pipe->push(_onClick, _onClickContext);
+        pipe->push(drawControlForwarder, this);
     }
 }
 

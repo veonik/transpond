@@ -72,6 +72,8 @@ public:
 class DashboardViewController : public ViewController {
 private:
     Button *_btnSettings;
+    Button *_btnProgram;
+    Button *_btnClear;
     Stat *_ack;
     Stat *_lag;
     Stat *_rssi;
@@ -100,6 +102,8 @@ public:
 
     void deinit() {
         delete _btnSettings;
+        delete _btnProgram;
+        delete _btnClear;
         delete _ack;
         delete _lag;
         delete _rssi;

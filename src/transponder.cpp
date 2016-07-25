@@ -9,6 +9,8 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
 
+#include <MadgwickAHRS.h>
+
 #include "vcc.h"
 #include "message.h"
 
@@ -38,6 +40,7 @@ unsigned long lastReceipt;
 const long UPDATE_WAIT = 50;    // in ms
 
 metrics m;
+Madgwick ahrs;
 
 void initSensors() {
     if (!accel.begin()) {
@@ -61,6 +64,7 @@ void initSensors() {
     } else {
         gyro.enableAutoRange(true);
     }
+    ahrs.begin(25);
 }
 
 void onMessageReceived(Message *msg) {
@@ -153,6 +157,10 @@ void update() {
         Serial.print(F("Z: ")); Serial.print(gyro_event.gyro.z); Serial.print(F("  "));
         Serial.println(F("rad/s "));
 #endif
+        ahrs.update(gyro_event.gyro.x, gyro_event.gyro.y, gyro_event.gyro.z, accel_event.acceleration.x, accel_event.acceleration.y, accel_event.acceleration.z, mag_event.magnetic.x, mag_event.magnetic.y, mag_event.magnetic.z);
+        m.lastRoll = ahrs.getRoll();
+        m.lastPitch = ahrs.getPitch();
+        m.lastHeading = ahrs.getYaw();
     } else {
         m.lastGyroX = NO_READING_FLOAT;
         m.lastGyroY = NO_READING_FLOAT;
@@ -188,18 +196,18 @@ void loop() {
         lastUpdate = tick;
         update();
     }
-
-    if (Serial.available()) {
-        String cmd = Serial.readStringUntil('\n');
-        if (cmd[0] == 'I') {
-            Serial.print(F("Average tick delay: "));
-            Serial.print(avgTickDelay);
-            Serial.println(F("ms"));
-            Serial.print(F("Average update delay: "));
-            Serial.print(avgUpdateDelay);
-            Serial.println(F("ms"));
-        }
-    }
+//
+//    if (Serial.available()) {
+//        String cmd = Serial.readStringUntil('\n');
+//        if (cmd[0] == 'I') {
+//            Serial.print(F("Average tick delay: "));
+//            Serial.print(avgTickDelay);
+//            Serial.println(F("ms"));
+//            Serial.print(F("Average update delay: "));
+//            Serial.print(avgUpdateDelay);
+//            Serial.println(F("ms"));
+//        }
+//    }
 }
 
 #endif
