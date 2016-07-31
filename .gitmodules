@@ -25,6 +25,3 @@
 [submodule "lib/Touch_Screen"]
 	path = lib/Touch_Screen
 	url = https://github.com/veonik/Touch_Screen_Driver.git
-[submodule "lib/MadgwickAHRS"]
-	path = lib/MadgwickAHRS
-	url = https://github.com/arduino-libraries/MadgwickAHRS

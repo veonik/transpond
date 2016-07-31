@@ -9,8 +9,6 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
 
-#include <MadgwickAHRS.h>
-
 #include "vcc.h"
 #include "message.h"
 
@@ -30,17 +28,14 @@ bool gyroEnabled = true;
 uint8_t piezoSensor = A0;
 
 unsigned long lastTick = 0;
-long ticks = 0;
-long avgTickDelay;
-long updates;
-long avgUpdateDelay;
-unsigned long lastUpdate;
-unsigned long lastReceipt;
+unsigned long lastUpdate = 0;
+unsigned long lastReceipt = 0;
+int avgTickDelay;
+int avgUpdateDelay;
 
 const long UPDATE_WAIT = 50;    // in ms
 
 metrics m;
-Madgwick ahrs;
 
 void initSensors() {
     if (!accel.begin()) {
@@ -64,8 +59,10 @@ void initSensors() {
     } else {
         gyro.enableAutoRange(true);
     }
-    ahrs.begin(25);
 }
+
+int printOrientation;
+int printOrientationI;
 
 void onMessageReceived(Message *msg) {
     lastReceipt = micros();
@@ -100,18 +97,23 @@ void update() {
         && mag.getEvent(&mag_event)
         && dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)
     ) {
+        // TODO: Tilt compensation
         m.lastRoll = orientation.roll;
         m.lastPitch = orientation.pitch;
         m.lastHeading = orientation.heading;
-#ifdef DEBUGV
-
+#ifndef DEBUGV
+        if (printOrientationI < printOrientation) {
+            printOrientationI++;
+#endif
         Serial.print(F("Orientation: "));
         Serial.print(orientation.roll);
-        Serial.print(F(" "));
+        Serial.print(F("\t"));
         Serial.print(orientation.pitch);
-        Serial.print(F(" "));
+        Serial.print(F("\t"));
         Serial.print(orientation.heading);
-        Serial.println(F("   degs"));
+        Serial.println(F("\tdegs"));
+#ifndef DEBUGV
+        }
 #endif
     } else {
         m.lastRoll = NO_READING_FLOAT;
@@ -157,10 +159,6 @@ void update() {
         Serial.print(F("Z: ")); Serial.print(gyro_event.gyro.z); Serial.print(F("  "));
         Serial.println(F("rad/s "));
 #endif
-        ahrs.update(gyro_event.gyro.x, gyro_event.gyro.y, gyro_event.gyro.z, accel_event.acceleration.x, accel_event.acceleration.y, accel_event.acceleration.z, mag_event.magnetic.x, mag_event.magnetic.y, mag_event.magnetic.z);
-        m.lastRoll = ahrs.getRoll();
-        m.lastPitch = ahrs.getPitch();
-        m.lastHeading = ahrs.getYaw();
     } else {
         m.lastGyroX = NO_READING_FLOAT;
         m.lastGyroY = NO_READING_FLOAT;
@@ -181,33 +179,45 @@ void setup() {
 }
 
 void loop() {
+    // TODO: alpha defines how much weight each value in the exponential average
+    // has, and therefore its impact in the average.
+    float alpha = 0.01;
     unsigned long tick = millis();
     long diff = tick - lastTick;
-    ticks++;
-    avgTickDelay = avgTickDelay + ((diff - avgTickDelay) / ticks);
+    if (avgTickDelay > 0) {
+        avgTickDelay = (int) round((alpha * diff) + ((1 - alpha) * avgTickDelay));
+    } else {
+        avgTickDelay = (int) diff;
+    }
     lastTick = tick;
 
     radio->tick();
 
     diff = tick - lastUpdate;
     if (diff >= UPDATE_WAIT) {
-        updates++;
-        avgUpdateDelay = avgUpdateDelay + ((diff - avgUpdateDelay) / updates);
+        if (avgUpdateDelay > 0) {
+            avgUpdateDelay = (int) round((alpha * diff) + ((1 - alpha) * avgUpdateDelay));
+        } else {
+            avgUpdateDelay = (int) diff;
+        }
         lastUpdate = tick;
         update();
     }
-//
-//    if (Serial.available()) {
-//        String cmd = Serial.readStringUntil('\n');
-//        if (cmd[0] == 'I') {
-//            Serial.print(F("Average tick delay: "));
-//            Serial.print(avgTickDelay);
-//            Serial.println(F("ms"));
-//            Serial.print(F("Average update delay: "));
-//            Serial.print(avgUpdateDelay);
-//            Serial.println(F("ms"));
-//        }
-//    }
+
+    if (Serial.available()) {
+        char cmd = (char) Serial.read();
+        if (cmd == 'I') {
+            Serial.print(F("Average tick delay: "));
+            Serial.print(avgTickDelay);
+            Serial.println(F("ms"));
+            Serial.print(F("Average update delay: "));
+            Serial.print(avgUpdateDelay);
+            Serial.println(F("ms"));
+        } else if (cmd == 'P') {
+            printOrientation = 100;
+            printOrientationI = 0;
+        }
+    }
 }
 
 #endif

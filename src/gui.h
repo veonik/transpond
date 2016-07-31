@@ -95,44 +95,50 @@ public:
     virtual void draw() = 0;
 };
 
-class Label : public Control {
+class Clickable : public Control {
+private:
+    tickCallback _onClick;
+    void *_onClickContext;
+
+protected:
+    byte _touching = 0;
+
+public:
+    Clickable(Point pos, Size siz) : Control(pos, siz) {}
+
+    void then(tickCallback cb, void *context);
+
+    void tick();
+
+    virtual void draw() = 0;
+};
+
+class Label : public Clickable {
 private:
     const char *_label;
 
 public:
     int fontSize = 1;
     uint16_t fontColor = ILI9341_WHITE;
-    uint16_t bgColor = ILI9341_BLACK;
+    bool centerLabel = false;
 
-    Label(Point pos, Size siz) : Control(pos, siz) { }
+    Label(Point pos, Size siz) : Clickable(pos, siz) { }
 
     void setLabel(const char *label);
 
-    void tick() {}
+    void tick();
 
     void draw();
 };
 
-class Button : public Control {
-private:
-    const char *_label;
-
-    tickCallback _onClick;
-    void *_onClickContext;
-
-    byte _touching = 0;
-
+class Button : public Label {
 public:
-    int fontSize = 1;
-    uint16_t fontColor = ILI9341_WHITE;
     uint16_t bgColor = ILI9341_BLACK;
     uint16_t touchColor = ILI9341_DARKGREY;
 
-    Button(Point pos, Size siz) : Control(pos, siz) { }
-
-    void setLabel(const char *label);
-
-    void then(tickCallback cb, void *context);
+    Button(Point pos, Size siz) : Label(pos, siz) {
+        centerLabel = true;
+    }
 
     void tick();
 

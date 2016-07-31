@@ -32,8 +32,6 @@ void Pipeline::push(tickCallback fn, void *context) {
 #endif
 }
 
-Control::~Control() { }
-
 void Pipeline::tick() {
     if (_viewController) {
         _viewController->tick();
@@ -61,29 +59,14 @@ void Pipeline::flush() {
     _draining = false;
 }
 
-void Label::draw() {
+Control::~Control() { }
 
-}
-
-void Label::setLabel(const char *label) {
-    _label = label;
-}
-
-void Button::setLabel(const char *label) {
-    _label = label;
-}
-
-void Button::then(tickCallback cb, void *context) {
-    _onClick = cb;
-    _onClickContext = context;
-}
-
-void Button::tick() {
+void Clickable::tick() {
     if (screen.isTouching(
-            _pos.x,
-            _pos.y,
-            _pos.x+_size.w,
-            _pos.y+_size.h
+        _pos.x,
+        _pos.y,
+        _pos.x+_size.w,
+        _pos.y+_size.h
     )) {
         _touching++;
         if (_touching == 1) {
@@ -96,22 +79,23 @@ void Button::tick() {
     }
 }
 
-void Button::draw() {
+void Clickable::then(tickCallback cb, void *context) {
+    _onClick = cb;
+    _onClickContext = context;
+}
+
+void Label::tick() {
+    Clickable::tick();
+}
+
+void Label::draw() {
     int ox = _pos.x;
     int oy = _pos.y;
-    uint16_t fontBgColor = bgColor;
-    if (_touching) {
-        fontBgColor = touchColor;
-        tft.fillRect(_pos.x, _pos.y, _size.w, _size.h, touchColor);
-    } else {
+    if (!_touching) {
         ox--;
         oy--;
-        tft.fillRect(_pos.x-1, _pos.y-1, _size.w, _size.h, bgColor);
-        tft.drawFastVLine(_pos.x-1+_size.w, _pos.y-1, _size.h, ILI9341_BLACK);
-        tft.drawFastHLine(_pos.x-1, _pos.y-1+_size.h, _size.w, ILI9341_BLACK);
     }
-
-    tft.setTextColor(fontColor, fontBgColor);
+    tft.setTextColor(fontColor);
     int offset = CURSOR_Y_SMALL;
     if (fontSize == 1) {
         tft.setFont(&Inconsolata_g5pt7b);
@@ -119,12 +103,42 @@ void Button::draw() {
         tft.setFont(&Inconsolata_g8pt7b);
         offset = CURSOR_Y_LARGE;
     }
-    uint16_t w, h;
-    tft.getTextBounds((char *)_label, 10, 10, 0, 0, &w, &h);
-    int x = (int) ox + (_size.w / 2) - ((int) w / 2);
-    int y = (int) oy + (_size.h / 2) - ((int) h / 2);
-    tft.setCursor(x, y+offset);
-    tft.print(_label);
+    if (centerLabel) {
+        uint16_t w, h;
+        tft.getTextBounds((char *) _label, 10, 10, 0, 0, &w, &h);
+        int x = (int) ox + (_size.w / 2) - ((int) w / 2);
+        int y = (int) oy + (_size.h / 2) - ((int) h / 2);
+        tft.setCursor(x, y + offset);
+        tft.print(_label);
+    } else {
+        tft.setCursor(ox, oy+offset);
+        tft.print(_label);
+    }
+}
+
+void Label::setLabel(const char *label) {
+    _label = label;
+}
+
+void Button::tick() {
+    Label::tick();
+}
+
+void Button::draw() {
+    int ox = _pos.x;
+    int oy = _pos.y;
+    if (_touching) {
+        tft.fillRect(_pos.x, _pos.y, _size.w, _size.h, touchColor);
+    } else {
+        ox--;
+        oy--;
+        tft.fillRect(_pos.x-1, _pos.y-1, _size.w, _size.h, bgColor);
+        // TODO: Better drop shadow
+        tft.drawFastVLine(_pos.x-1+_size.w, _pos.y-1, _size.h, ILI9341_BLACK);
+        tft.drawFastHLine(_pos.x-1, _pos.y-1+_size.h, _size.w, ILI9341_BLACK);
+    }
+
+    Label::draw();
 }
 
 void drawControlForwarder(void *context) {
