@@ -91,9 +91,9 @@ void Label::tick() {
 void Label::draw() {
     int ox = _pos.x;
     int oy = _pos.y;
-    if (!_touching) {
-        ox--;
-        oy--;
+    if (_touching) {
+        ox++;
+        oy++;
     }
     tft.setTextColor(fontColor);
     int offset = CURSOR_Y_SMALL;
@@ -111,7 +111,7 @@ void Label::draw() {
         tft.setCursor(x, y + offset);
         tft.print(_label);
     } else {
-        tft.setCursor(ox, oy+offset);
+        tft.setCursor(ox, oy+_size.h-2);
         tft.print(_label);
     }
 }
@@ -125,13 +125,9 @@ void Button::tick() {
 }
 
 void Button::draw() {
-    int ox = _pos.x;
-    int oy = _pos.y;
     if (_touching) {
         tft.fillRect(_pos.x, _pos.y, _size.w, _size.h, touchColor);
     } else {
-        ox--;
-        oy--;
         tft.fillRect(_pos.x-1, _pos.y-1, _size.w, _size.h, bgColor);
         // TODO: Better drop shadow
         tft.drawFastVLine(_pos.x-1+_size.w, _pos.y-1, _size.h, ILI9341_BLACK);
@@ -139,6 +135,71 @@ void Button::draw() {
     }
 
     Label::draw();
+}
+
+void Textbox::setValueSuffix(const char *suffix) {
+    _valueSuffixText = suffix;
+}
+
+void Textbox::setValue(const char *val) {
+    strcpy(_value, val);
+}
+
+void Textbox::setValue(long val) {
+    ltoa(val, _value, 10);
+}
+
+void Textbox::setValue(double val) {
+    String str = String(val);
+    strcpy(_value, str.c_str());
+}
+
+const char *Textbox::getValue() {
+    return _value;
+}
+
+void Textbox::tick() {
+    Clickable::tick();
+}
+
+void Textbox::draw() {
+    if (_fillBackground) {
+        tft.fillRect(_pos.x, _pos.y, _size.w, _size.h, bgColor);
+        _fillBackground = false;
+    }
+    if (fontSize == 1) {
+        tft.setFont(&Inconsolata_g5pt7b);
+    } else {
+        tft.setFont(&Inconsolata_g8pt7b);
+    }
+
+    const char *valStr = _value;
+    int valLength = strlen(valStr);
+    if (_lastValLength > 0) {
+        if (strcmp(_lastVal, valStr) == 0) {
+            return;
+        }
+
+        tft.setCursor(_pos.x, _pos.y +_size.h-2);
+        tft.setTextColor(bgColor);
+        tft.print(_lastVal);
+
+        if (valLength != _lastValLength) {
+//            tft.setFont(&Inconsolata_g5pt7b);
+            tft.print(_valueSuffixText);
+        }
+    }
+
+    tft.setCursor(_pos.x, _pos.y +_size.h-2);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print(valStr);
+    tft.setFont(&Inconsolata_g5pt7b);
+    if (valLength != _lastValLength) {
+//        tft.setFont(&Inconsolata_g5pt7b);
+        tft.print(_valueSuffixText);
+    }
+    strcpy(_lastVal, valStr);
+    _lastValLength = valLength;
 }
 
 void drawControlForwarder(void *context) {

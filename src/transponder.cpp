@@ -181,7 +181,7 @@ void setup() {
 void loop() {
     // TODO: alpha defines how much weight each value in the exponential average
     // has, and therefore its impact in the average.
-    float alpha = 0.01;
+    float alpha = 0.05;
     unsigned long tick = millis();
     long diff = tick - lastTick;
     if (avgTickDelay > 0) {

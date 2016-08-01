@@ -31,13 +31,20 @@ void PositionViewController::draw() {
     if (y < 0) { y += 360; }
     if (z < 0) { z += 360; }
 
+    _txtXValue->setValue(x);
+    pipe->push(drawControlForwarder, _txtXValue);
+    _txtYValue->setValue(y);
+    pipe->push(drawControlForwarder, _txtYValue);
+    _txtZValue->setValue(z);
+    pipe->push(drawControlForwarder, _txtZValue);
+
     if (invalidReadingf(x) || invalidReadingf(y) || invalidReadingf(z)) {
-        tft.setCursor(10, 10+CURSOR_Y_SMALL);
+        tft.setCursor(10, 300+CURSOR_Y_SMALL);
         tft.setFont(&Inconsolata_g5pt7b);
         tft.setTextColor(ILI9341_RED);
         tft.print("x");
     } else {
-        tft.fillRect(10, 10, 20, 20, ILI9341_BLACK);
+        tft.fillRect(10, 300, 20, 20, ILI9341_BLACK);
     }
 
     Point center = Point{x: 40, y: 65};
@@ -95,11 +102,41 @@ void PositionViewController::init() {
     tft.drawFastVLine(160, 0, 110, tft.color565(50, 50, 50));
     tft.drawFastHLine(0, 110, 240, tft.color565(50, 50, 50));
 
-    _btnExit = new Button(Point{x: 205, y: 10}, Size{w: 25, h: 25});
+    _btnExit = new Button(Point{x: 205, y: 285}, Size{w: 25, h: 25});
     _btnExit->bgColor = ILI9341_DARKGREY;
     _btnExit->setLabel("x");
     _btnExit->then([](void *context) {
         pipe->segueTo(new DashboardViewController());
     }, NULL);
     pipe->push(drawControlForwarder, _btnExit);
+
+    _lblXValue = new Label(Point{x: 10, y: 10}, Size{w: 25, h: 13});
+    _lblXValue->setLabel("x:");
+    _lblXValue->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _lblXValue);
+
+    _txtXValue = new Textbox(Point{x: 25, y: 10}, Size{w: 50, h: 13});
+    _txtXValue->fontSize = 1;
+    _txtXValue->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _txtXValue);
+
+    _lblYValue = new Label(Point{x: 90, y: 10}, Size{w: 25, h: 13});
+    _lblYValue->setLabel("y:");
+    _lblYValue->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _lblYValue);
+
+    _txtYValue = new Textbox(Point{x: 105, y: 10}, Size{w: 50, h: 13});
+    _txtYValue->fontSize = 1;
+    _txtYValue->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _txtYValue);
+
+    _lblZValue = new Label(Point{x: 170, y: 10}, Size{w: 25, h: 13});
+    _lblZValue->setLabel("z:");
+    _lblZValue->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _lblZValue);
+
+    _txtZValue = new Textbox(Point{x: 185, y: 10}, Size{w: 50, h: 13});
+    _txtZValue->fontSize = 1;
+    _txtZValue->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _txtZValue);
 }

@@ -145,4 +145,37 @@ public:
     void draw();
 };
 
+class Textbox : public Clickable {
+private:
+    const char *_valueSuffixText = "";
+
+    int _lastValDrawn;
+    int _lastValLength = 0;
+    char _lastVal[16];
+
+    bool _fillBackground = true;
+
+    char _value[16];
+
+public:
+    int fontSize = 2;
+    uint16_t bgColor = ILI9341_BLACK;
+    uint16_t fontColor = ILI9341_WHITE;
+    uint16_t touchColor = ILI9341_DARKGREY;
+
+    Textbox(Point pos, Size siz) : Clickable(pos, siz) {}
+
+    void setValueSuffix(const char *suffix);
+
+    void setValue(const char *val);
+    void setValue(long val);
+    void setValue(double val);
+
+    const char *getValue();
+
+    void tick();
+
+    void draw();
+};
+
 #endif
