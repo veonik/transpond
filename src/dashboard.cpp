@@ -1,6 +1,7 @@
 #include "dashboard.h"
 #include "message.h"
 #include "settings.h"
+#include "programs.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
@@ -29,7 +30,7 @@ void drawChartForwarder(void* context) {
 
 void DashboardViewController::tick() {
     _btnSettings->tick();
-    _btnProgram->tick();
+    _btnPrograms->tick();
     _btnClear->tick();
 
     if (_lastUpdate < lastUpdate) {
@@ -68,25 +69,26 @@ void DashboardViewController::init() {
     _btnSettings->bgColor = tft.color565(75, 75, 75);
     _btnSettings->setLabel("SET");
     _btnSettings->then([](void *context) {
-        Serial.println("Clicked settings button!");
-        pipe->segueTo(new SettingsViewController());
+        pipe->seguePopover(new SettingsViewController());
     }, NULL);
     pipe->push(drawControlForwarder, _btnSettings);
 
-    _btnProgram = new Button(Point{x: 80, y: 280}, Size{w: 60, h: 30});
-    _btnProgram->bgColor = tft.color565(75, 75, 75);
-    _btnProgram->setLabel("PROG");
-    _btnProgram->then([](void *context) {
-        Serial.println("Clicked program button!");
+    _btnPrograms = new Button(Point{x: 80, y: 280}, Size{w: 60, h: 30});
+    _btnPrograms->bgColor = tft.color565(75, 75, 75);
+    _btnPrograms->setLabel("PROG");
+    _btnPrograms->then([](void *context) {
+        pipe->seguePopover(new ProgramsViewController());
     }, NULL);
-    pipe->push(drawControlForwarder, _btnProgram);
+    pipe->push(drawControlForwarder, _btnPrograms);
 
     _btnClear = new Button(Point{x: 170, y: 280}, Size{w: 60, h: 30});
     _btnClear->bgColor = tft.color565(75, 75, 75);
     _btnClear->setLabel("CLR");
     _btnClear->then([](void *context) {
-        Serial.println("Clicked clear button!");
-    }, NULL);
+        DashboardViewController* vc = static_cast<DashboardViewController*>(context);
+        vc->deinit();
+        vc->init();
+    }, this);
     pipe->push(drawControlForwarder, _btnClear);
 
     _ack = new Stat(10, 10, 50, 10, 10, 90);

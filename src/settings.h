@@ -7,8 +7,7 @@ class SettingsViewController : public ViewController {
 private:
     Button *_btnExit;
 
-    Button *_btnGraphicsTest;
-    Button *_btnPosition;
+    Button *_btnVibOffset;
 
 public:
     SettingsViewController() : ViewController() { }
@@ -25,8 +24,7 @@ public:
 
     void deinit() {
         delete _btnExit;
-        delete _btnGraphicsTest;
-        delete _btnPosition;
+        delete _btnVibOffset;
     }
 };
 

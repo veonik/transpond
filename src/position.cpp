@@ -106,7 +106,7 @@ void PositionViewController::init() {
     _btnExit->bgColor = ILI9341_DARKGREY;
     _btnExit->setLabel("x");
     _btnExit->then([](void *context) {
-        pipe->segueTo(new DashboardViewController());
+        pipe->segueBack();
     }, NULL);
     pipe->push(drawControlForwarder, _btnExit);
 

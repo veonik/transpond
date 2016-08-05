@@ -48,6 +48,8 @@ struct Size {
 
 class ViewController {
 public:
+    virtual ~ViewController() = 0;
+
     virtual void tick() = 0;
     virtual void draw() = 0;
 
@@ -58,6 +60,7 @@ public:
 class Pipeline {
 private:
     static const byte SIZE = 64;
+    static const byte HISTORY = 2;
 
     tickCallback _callbacks[SIZE];
     void *_contexts[SIZE];
@@ -66,10 +69,20 @@ private:
     short _push = 0;
     bool _draining = false;
 
-    ViewController *_viewController;
+    /**
+     * The current ViewController.
+     */
+    ViewController *_viewController = NULL;
+
+    /**
+     * The previous ViewController, populated only during "seguePopover" operations.
+     */
+    ViewController *_previousController = NULL;
 
 public:
     void segueTo(ViewController *nextController);
+    void seguePopover(ViewController *popoverController);
+    void segueBack();
 
     void push(tickCallback fn, void *context);
 
@@ -97,7 +110,7 @@ public:
 
 class Clickable : public Control {
 private:
-    tickCallback _onClick;
+    tickCallback _onClick = NULL;
     void *_onClickContext;
 
 protected:
@@ -106,6 +119,9 @@ protected:
 public:
     Clickable(Point pos, Size siz) : Control(pos, siz) {}
 
+    void then(tickCallback cb) {
+        then(cb, NULL);
+    }
     void then(tickCallback cb, void *context);
 
     void tick();
@@ -115,7 +131,7 @@ public:
 
 class Label : public Clickable {
 private:
-    const char *_label;
+    char _label[16];
 
 public:
     int fontSize = 1;
@@ -147,7 +163,7 @@ public:
 
 class Textbox : public Clickable {
 private:
-    const char *_valueSuffixText = "";
+    char _valueSuffixText[8];
 
     int _lastValDrawn;
     int _lastValLength = 0;

@@ -4,19 +4,59 @@ extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
 TouchScreen screen = TouchScreen(XP, YP, XM, YM);
 
+int freeRam ()
+{
+    extern int __heap_start, *__brkval;
+    int v;
+    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
+
+
 void Pipeline::segueTo(ViewController *nextController) {
-    if (_viewController) {
-        flush(); // ensure we don't use any null pointers later on.
-        _viewController->deinit();
+    flush();
+    if (_previousController != NULL) {
+        delete _previousController;
+        _previousController = NULL;
+    }
+    if (_viewController != NULL) {
         delete _viewController;
     }
     _viewController = nextController;
     _viewController->init();
 }
 
+void Pipeline::seguePopover(ViewController *popoverController) {
+    flush();
+    if (_previousController == NULL) {
+        _previousController = _viewController;
+        _previousController->deinit();
+    }
+    _viewController = popoverController;
+    _viewController->init();
+}
+
+void Pipeline::segueBack() {
+    if (_previousController == NULL) {
+        // TODO: Inconsistent api
+#ifdef DEBUGV
+        Serial.println(F("segue back called, no previous controller"));
+#endif
+        return;
+    }
+    flush();
+    if (_viewController != NULL) {
+        delete _viewController;
+    }
+    _viewController = _previousController;
+    _previousController = NULL;
+    _viewController->init();
+}
 
 void Pipeline::push(tickCallback fn, void *context) {
     if (_draining) {
+#ifdef DEBUGV
+        Serial.println(F("ignoring push, draining"));
+#endif
         return;
     }
     _callbacks[_push] = fn;
@@ -59,7 +99,9 @@ void Pipeline::flush() {
     _draining = false;
 }
 
-Control::~Control() { }
+ViewController::~ViewController() {}
+
+Control::~Control() {}
 
 void Clickable::tick() {
     if (screen.isTouching(
@@ -74,7 +116,9 @@ void Clickable::tick() {
         }
     } else if (_touching > 0) {
         _touching = 0;
-        pipe->push(_onClick, _onClickContext);
+        if (_onClick != NULL) {
+            pipe->push(_onClick, _onClickContext);
+        }
         pipe->push(drawControlForwarder, this);
     }
 }
@@ -105,7 +149,8 @@ void Label::draw() {
     }
     if (centerLabel) {
         uint16_t w, h;
-        tft.getTextBounds((char *) _label, 10, 10, 0, 0, &w, &h);
+        int16_t x1, y1;
+        tft.getTextBounds(_label, 10, 10, &x1, &y1, &w, &h);
         int x = (int) ox + (_size.w / 2) - ((int) w / 2);
         int y = (int) oy + (_size.h / 2) - ((int) h / 2);
         tft.setCursor(x, y + offset);
@@ -117,7 +162,7 @@ void Label::draw() {
 }
 
 void Label::setLabel(const char *label) {
-    _label = label;
+    strcpy(_label, label);
 }
 
 void Button::tick() {
@@ -138,7 +183,7 @@ void Button::draw() {
 }
 
 void Textbox::setValueSuffix(const char *suffix) {
-    _valueSuffixText = suffix;
+    strcpy(_valueSuffixText, suffix);
 }
 
 void Textbox::setValue(const char *val) {
@@ -184,20 +229,20 @@ void Textbox::draw() {
         tft.setTextColor(bgColor);
         tft.print(_lastVal);
 
-        if (valLength != _lastValLength) {
+//        if (valLength != _lastValLength && _valueSuffixText[0] != 0) {
 //            tft.setFont(&Inconsolata_g5pt7b);
-            tft.print(_valueSuffixText);
-        }
+//            tft.print(_valueSuffixText);
+//        }
     }
 
     tft.setCursor(_pos.x, _pos.y +_size.h-2);
     tft.setTextColor(ILI9341_WHITE);
     tft.print(valStr);
     tft.setFont(&Inconsolata_g5pt7b);
-    if (valLength != _lastValLength) {
+//    if (valLength != _lastValLength) {
 //        tft.setFont(&Inconsolata_g5pt7b);
-        tft.print(_valueSuffixText);
-    }
+//        tft.print(_valueSuffixText);
+//    }
     strcpy(_lastVal, valStr);
     _lastValLength = valLength;
 }
