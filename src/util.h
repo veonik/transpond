@@ -1,5 +1,5 @@
-#ifndef _VCC_H_
-#define _VCC_H_
+#ifndef _UTIL_H_
+#define _UTIL_H_
 
 // From: http://provideyourown.com/2012/secret-arduino-voltmeter-measure-battery-voltage/
 int readVcc() {
@@ -28,5 +28,11 @@ int readVcc() {
     return (int) result; // Vcc in millivolts
 }
 
+// From: https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
+int freeRam() {
+    extern int __heap_start, *__brkval;
+    int v;
+    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
 
 #endif

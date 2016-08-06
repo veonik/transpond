@@ -8,7 +8,7 @@
 #include <SPI.h>
 
 #include "gui.h"
-#include "vcc.h"
+#include "util.h"
 #include "message.h"
 
 #include "dashboard.h"

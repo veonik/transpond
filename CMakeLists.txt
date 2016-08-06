@@ -9,6 +9,7 @@ add_definitions(-DARDUINO_ARCH_AVR)
 add_definitions(-DARDUINO_AVR_UNO)
 add_definitions(-DARDUINO=10608)
 add_definitions(-D__AVR_ATmega328P__)
+add_definitions(-D__AVR__)
 
 add_custom_target(
     PLATFORMIO_BUILD ALL

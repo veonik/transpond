@@ -25,3 +25,12 @@
 [submodule "lib/Touch_Screen"]
 	path = lib/Touch_Screen
 	url = https://github.com/veonik/Touch_Screen_Driver.git
+[submodule "lib/Adafruit_BNO055"]
+	path = lib/Adafruit_BNO055
+	url = https://github.com/adafruit/Adafruit_BNO055
+[submodule "lib/TinyGPSPlus"]
+	path = lib/TinyGPSPlus
+	url = https://github.com/mikalhart/TinyGPSPlus.git
+[submodule "lib/Adafruit_FRAM"]
+	path = lib/Adafruit_FRAM
+	url = https://github.com/adafruit/Adafruit_FRAM_I2C.git

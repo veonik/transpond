@@ -1,6 +1,7 @@
 #ifndef HANDSET
 
 #include <Arduino.h>
+
 #include <CC1101Radio.h>
 
 #include <Adafruit_Sensor.h>
@@ -8,9 +9,15 @@
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_10DOF.h>
+#include <Adafruit_BNO055.h>
 
-#include "vcc.h"
+#include <gSoftSerial.h>
+#include <TinyGPS++.h>
+
+#include "util.h"
 #include "message.h"
+#include "gps.h"
+#include "fram.h"
 
 Radio *radio;
 
@@ -19,20 +26,30 @@ Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(30301);
 Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
 Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 Adafruit_L3GD20_Unified       gyro  = Adafruit_L3GD20_Unified(20);
+Adafruit_BNO055               bno   = Adafruit_BNO055(55);
+
+gSoftSerial gpsSerial = gSoftSerial(5, 4);
+TinyGPSPlus gps;
+
+FRAM fram = FRAM();
 
 bool accelEnabled = true;
 bool magEnabled = true;
 bool bmpEnabled = true;
 bool gyroEnabled = true;
+bool bnoEnabled = true;
+bool framEnabled = true;
 
 uint8_t piezoSensor = A0;
 
 unsigned long lastTick = 0;
 unsigned long lastUpdate = 0;
+unsigned long lastWrite = 0;
 unsigned long lastReceipt = 0;
 int avgTickDelay;
 int avgUpdateDelay;
 
+const long WRITE_WAIT = 500;    // in ms
 const long UPDATE_WAIT = 50;    // in ms
 
 metrics m;
@@ -59,10 +76,27 @@ void initSensors() {
     } else {
         gyro.enableAutoRange(true);
     }
+    if (!bno.begin()) {
+        Serial.println(F("BNO055 not found"));
+        bnoEnabled = false;
+    }
+    if (!fram.begin()) {
+        Serial.println(F("FRAM not found"));
+        framEnabled = false;
+    } else {
+        fram.format();
+    }
+
+    gpsSerial.begin(9600);
+    gpsSerial.println(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+    gpsSerial.println(PMTK_SET_NMEA_UPDATE_5HZ);   // 1 Hz update rate
+    gpsSerial.println(PMTK_API_SET_FIX_CTL_5HZ);   // 1 Hz fix update rate
 }
 
 int printOrientation;
 int printOrientationI;
+int printGps;
+int printGpsI;
 
 void onMessageReceived(Message *msg) {
     lastReceipt = micros();
@@ -90,7 +124,6 @@ void update() {
     sensors_event_t bmp_event;
     sensors_event_t gyro_event;
     sensors_vec_t   orientation;
-
     if (accelEnabled
         && magEnabled
         && accel.getEvent(&accel_event)
@@ -168,6 +201,80 @@ void update() {
         Serial.println(F("Unable to read gyro"));
 #endif
     }
+
+    if (bnoEnabled) {
+        imu::Vector<3> bno_accel = bno.getVector(bno.VECTOR_ACCELEROMETER);
+#ifndef DEBUGV
+        if (printOrientationI < printOrientation) {
+            printOrientationI++;
+#endif
+            Serial.print(F("BNO accel: "));
+            Serial.print(bno_accel.x());
+            Serial.print(F("\t"));
+            Serial.print(bno_accel.y());
+            Serial.print(F("\t"));
+            Serial.println(bno_accel.z());
+#ifndef DEBUGV
+        }
+#endif
+    }
+
+    if (gps.location.isUpdated()) {
+#ifndef DEBUGV
+        if (printGpsI < printGps) {
+            printGpsI++;
+#endif
+            Serial.print(F("Location: "));
+            if (gps.location.isValid()) {
+                Serial.print(gps.location.lat(), 6);
+                Serial.print(F(","));
+                Serial.print(gps.location.lng(), 6);
+            } else {
+                Serial.print(F("INVALID"));
+            }
+
+            Serial.print(F("  Date/Time: "));
+            if (gps.date.isValid()) {
+                Serial.print(gps.date.month());
+                Serial.print(F("/"));
+                Serial.print(gps.date.day());
+                Serial.print(F("/"));
+                Serial.print(gps.date.year());
+            } else {
+                Serial.print(F("INVALID"));
+            }
+
+            Serial.print(F(" "));
+            if (gps.time.isValid()) {
+                if (gps.time.hour() < 10) Serial.print(F("0"));
+                Serial.print(gps.time.hour());
+                Serial.print(F(":"));
+                if (gps.time.minute() < 10) Serial.print(F("0"));
+                Serial.print(gps.time.minute());
+                Serial.print(F(":"));
+                if (gps.time.second() < 10) Serial.print(F("0"));
+                Serial.print(gps.time.second());
+                Serial.print(F("."));
+                if (gps.time.centisecond() < 10) Serial.print(F("0"));
+                Serial.print(gps.time.centisecond());
+            } else {
+                Serial.print(F("INVALID"));
+            }
+
+            Serial.println();
+#ifndef DEBUGV
+        }
+#endif
+    }
+}
+
+void log() {
+    if (!framEnabled) {
+        return;
+    }
+
+    fram.write((int) millis());
+    fram.write(m.lastVcc);
 }
 
 void setup() {
@@ -190,8 +297,9 @@ void loop() {
         avgTickDelay = (int) diff;
     }
     lastTick = tick;
-
-    radio->tick();
+    while (gpsSerial.available()) {
+        gps.encode(gpsSerial.read());
+    }
 
     diff = tick - lastUpdate;
     if (diff >= UPDATE_WAIT) {
@@ -204,6 +312,14 @@ void loop() {
         update();
     }
 
+    radio->tick();
+
+    diff = tick - lastWrite;
+    if (diff >= WRITE_WAIT) {
+        lastWrite = tick;
+        log();
+    }
+
     if (Serial.available()) {
         char cmd = (char) Serial.read();
         if (cmd == 'I') {
@@ -213,9 +329,22 @@ void loop() {
             Serial.print(F("Average update delay: "));
             Serial.print(avgUpdateDelay);
             Serial.println(F("ms"));
+            Serial.print(F("RAM free: "));
+            Serial.print(freeRam());
+            Serial.println(F(" bytes"));
         } else if (cmd == 'P') {
             printOrientation = 100;
             printOrientationI = 0;
+        } else if (cmd == 'G') {
+            printGps = 5;
+            printGpsI = 0;
+        } else if (cmd == 'F') {
+            for (uint16_t pos = FRAM_DATA_START; pos < 40; pos += 4) {
+                Serial.print("VCC at offset ");
+                Serial.print(fram.readInt(pos));
+                Serial.print(": ");
+                Serial.println(fram.readInt(pos+2));
+            }
         }
     }
 }
