@@ -20,31 +20,32 @@ uint16_t FRAM::_increment(int i) {
     if (_pos > FRAM_DATA_END) {
         _pos = FRAM_DATA_START;
     }
-    _fram.write8(FRAM_CURRENT_POSITION_HIGH, highByte(_pos));
     _fram.write8(FRAM_CURRENT_POSITION_LOW, lowByte(_pos));
+    _fram.write8(FRAM_CURRENT_POSITION_HIGH, highByte(_pos));
     return pos;
 }
 
 uint16_t FRAM::_boundsCheck(uint16_t pos, uint16_t size) {
-    if (pos >= FRAM_DATA_START && pos+size < FRAM_DATA_END) {
+    if (pos >= FRAM_DATA_START && pos+size <= FRAM_DATA_END) {
         return pos;
     }
     return FRAM_DATA_START;
 }
 
 void FRAM::_ensureFits(uint16_t pos, uint16_t size) {
-    if (pos >= FRAM_DATA_START && pos+size < FRAM_DATA_END) {
+    if (pos >= FRAM_DATA_START && pos+size <= FRAM_DATA_END) {
         return;
     }
     _pos = FRAM_DATA_START;
-    _fram.write8(FRAM_CURRENT_POSITION_HIGH, highByte(_pos));
     _fram.write8(FRAM_CURRENT_POSITION_LOW, lowByte(_pos));
+    _fram.write8(FRAM_CURRENT_POSITION_HIGH, highByte(_pos));
 }
 
 bool FRAM::format() {
     _pos = FRAM_DATA_START;
-    _fram.write8(FRAM_CURRENT_POSITION_HIGH, highByte(_pos));
     _fram.write8(FRAM_CURRENT_POSITION_LOW, lowByte(_pos));
+    _fram.write8(FRAM_CURRENT_POSITION_HIGH, highByte(_pos));
+    return true;
 }
 
 uint16_t FRAM::write(char c) {

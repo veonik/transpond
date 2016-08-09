@@ -89,8 +89,8 @@ void initSensors() {
 
     gpsSerial.begin(9600);
     gpsSerial.println(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-    gpsSerial.println(PMTK_SET_NMEA_UPDATE_5HZ);   // 1 Hz update rate
-    gpsSerial.println(PMTK_API_SET_FIX_CTL_5HZ);   // 1 Hz fix update rate
+    gpsSerial.println(PMTK_SET_NMEA_UPDATE_5HZ);
+    gpsSerial.println(PMTK_API_SET_FIX_CTL_5HZ);
 }
 
 int printOrientation;
@@ -100,7 +100,7 @@ int printGpsI;
 
 void onMessageReceived(Message *msg) {
     lastReceipt = micros();
-    m.lastRssi = msg->rssi;
+    m.rssi = msg->rssi;
 
     char ack[PACKED_SIZE];
     size_t s = pack(m, ack);
@@ -116,8 +116,8 @@ void onMessageReceived(Message *msg) {
 }
 
 void update() {
-    m.lastVibration = analogRead(piezoSensor);
-    m.lastVcc = readVcc();
+    m.vibration = analogRead(piezoSensor);
+    m.vcc = readVcc();
 
     sensors_event_t accel_event;
     sensors_event_t mag_event;
@@ -130,15 +130,22 @@ void update() {
         && mag.getEvent(&mag_event)
         && dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)
     ) {
+        m.accelX = accel_event.acceleration.x;
+        m.accelY = accel_event.acceleration.y;
+        m.accelZ = accel_event.acceleration.z;
+        m.magX = mag_event.magnetic.x;
+        m.magY = mag_event.magnetic.y;
+        m.magZ =mag_event.magnetic.z;
+
         // TODO: Tilt compensation
-        m.lastRoll = orientation.roll;
-        m.lastPitch = orientation.pitch;
-        m.lastHeading = orientation.heading;
+        m.roll = orientation.roll;
+        m.pitch = orientation.pitch;
+        m.heading = orientation.heading;
 #ifndef DEBUGV
         if (printOrientationI < printOrientation) {
             printOrientationI++;
 #endif
-        Serial.print(F("Orientation: "));
+        Serial.print(F("Orientation :\t"));
         Serial.print(orientation.roll);
         Serial.print(F("\t"));
         Serial.print(orientation.pitch);
@@ -149,9 +156,9 @@ void update() {
         }
 #endif
     } else {
-        m.lastRoll = NO_READING_FLOAT;
-        m.lastPitch = NO_READING_FLOAT;
-        m.lastHeading = NO_READING_FLOAT;
+        m.roll = NO_READING_FLOAT;
+        m.pitch = NO_READING_FLOAT;
+        m.heading = NO_READING_FLOAT;
 #ifdef DEBUGV
 
         Serial.println(F("Unable to read pitch/roll/heading"));
@@ -161,20 +168,20 @@ void update() {
     if (bmpEnabled && bmp.getEvent(&bmp_event) && bmp_event.pressure) {
         float temperature;
         bmp.getTemperature(&temperature);
-        m.lastTemp = temperature;
-        m.lastAltitude = bmp.pressureToAltitude(SENSORS_PRESSURE_SEALEVELHPA, bmp_event.pressure, temperature);
+        m.temp = temperature;
+        m.altitude = bmp.pressureToAltitude(SENSORS_PRESSURE_SEALEVELHPA, bmp_event.pressure, temperature);
 #ifdef DEBUGV
 
         Serial.print(F("Alt: "));
-        Serial.print(m.lastAltitude);
+        Serial.print(m.altitude);
         Serial.println(F("m"));
         Serial.print(F("Temp: "));
         Serial.print(temperature);
         Serial.println(F("C"));
 #endif
     } else {
-        m.lastTemp = NO_READING_FLOAT;
-        m.lastAltitude = NO_READING_FLOAT;
+        m.temp = NO_READING_FLOAT;
+        m.altitude = NO_READING_FLOAT;
 #ifdef DEBUGV
 
         Serial.println(F("Unable to read temp/altitude"));
@@ -182,9 +189,9 @@ void update() {
     }
 
     if (gyroEnabled && gyro.getEvent(&gyro_event)) {
-        m.lastGyroX = gyro_event.gyro.x;
-        m.lastGyroY = gyro_event.gyro.y;
-        m.lastGyroZ = gyro_event.gyro.z;
+        m.gyroX = gyro_event.gyro.x;
+        m.gyroY = gyro_event.gyro.y;
+        m.gyroZ = gyro_event.gyro.z;
 #ifdef DEBUGV
 
         Serial.print(F("X: ")); Serial.print(gyro_event.gyro.x); Serial.print(F("  "));
@@ -193,9 +200,9 @@ void update() {
         Serial.println(F("rad/s "));
 #endif
     } else {
-        m.lastGyroX = NO_READING_FLOAT;
-        m.lastGyroY = NO_READING_FLOAT;
-        m.lastGyroZ = NO_READING_FLOAT;
+        m.gyroX = NO_READING_FLOAT;
+        m.gyroY = NO_READING_FLOAT;
+        m.gyroZ = NO_READING_FLOAT;
 #ifdef DEBUGV
 
         Serial.println(F("Unable to read gyro"));
@@ -204,22 +211,52 @@ void update() {
 
     if (bnoEnabled) {
         imu::Vector<3> bno_accel = bno.getVector(bno.VECTOR_ACCELEROMETER);
+        imu::Vector<3> bno_gyro = bno.getVector(bno.VECTOR_GYROSCOPE);
+        imu::Vector<3> bno_mag = bno.getVector(bno.VECTOR_MAGNETOMETER);
+        m.accel2X = bno_accel.x();
+        m.accel2Y = bno_accel.y();
+        m.accel2Z = bno_accel.z();
+        m.mag2X = bno_mag.x();
+        m.mag2Y = bno_mag.y();
+        m.mag2Z = bno_mag.z();
+        m.gyro2X = bno_gyro.x();
+        m.gyro2Y = bno_gyro.y();
+        m.gyro2Z = bno_gyro.z();
+        m.temp2 = bno.getTemp();
+
+        accel_event.acceleration.x = m.accel2X;
+        accel_event.acceleration.y = m.accel2Y;
+        accel_event.acceleration.z = m.accel2Z;
+        mag_event.magnetic.x = m.mag2X;
+        mag_event.magnetic.y = m.mag2Y;
+        mag_event.magnetic.z = m.mag2Z;
+
+        dof.fusionGetOrientation(&accel_event, &mag_event, &orientation);
+        m.roll2 = orientation.roll;
+        m.pitch2 = orientation.pitch;
+        m.heading2 = orientation.heading;
+
 #ifndef DEBUGV
         if (printOrientationI < printOrientation) {
-            printOrientationI++;
 #endif
-            Serial.print(F("BNO accel: "));
-            Serial.print(bno_accel.x());
+            Serial.print(F("Orientation2:\t"));
+            Serial.print(orientation.roll);
             Serial.print(F("\t"));
-            Serial.print(bno_accel.y());
+            Serial.print(orientation.pitch);
             Serial.print(F("\t"));
-            Serial.println(bno_accel.z());
+            Serial.print(orientation.heading);
+            Serial.println(F("\tdegs"));
 #ifndef DEBUGV
         }
 #endif
     }
 
     if (gps.location.isUpdated()) {
+        m.altitudeGps  = (float) gps.altitude.meters();
+        m.latitude  = (float) gps.location.lat();
+        m.longitude = (float) gps.location.lng();
+        m.date = gps.date.value();
+        m.time = gps.time.value();
 #ifndef DEBUGV
         if (printGpsI < printGps) {
             printGpsI++;
@@ -274,7 +311,7 @@ void log() {
     }
 
     fram.write((int) millis());
-    fram.write(m.lastVcc);
+    fram.write(m.vcc);
 }
 
 void setup() {
@@ -339,7 +376,7 @@ void loop() {
             printGps = 5;
             printGpsI = 0;
         } else if (cmd == 'F') {
-            for (uint16_t pos = FRAM_DATA_START; pos < 40; pos += 4) {
+            for (uint16_t pos = FRAM_DATA_START; pos < FRAM_DATA_START+40; pos += 4) {
                 Serial.print("VCC at offset ");
                 Serial.print(fram.readInt(pos));
                 Serial.print(": ");

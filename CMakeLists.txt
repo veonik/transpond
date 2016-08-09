@@ -48,5 +48,16 @@ add_custom_target(
 )
 
 add_executable(transpond
-    src/handset.cpp src/transponder.cpp
+    src/dashboard.cpp
+    src/fram.cpp
+    src/graphics_test.cpp
+    src/gui.cpp
+    src/handset.cpp
+    src/input.cpp
+    src/message.cpp
+    src/position.cpp
+    src/programs.cpp
+    src/settings.cpp
+    src/transponder.cpp
+    src/vibration_offset.cpp
 )

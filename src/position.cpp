@@ -18,9 +18,9 @@ void PositionViewController::tick() {
 }
 
 void PositionViewController::draw() {
-    float x = remote.lastRoll;
-    float y = remote.lastPitch;
-    float z = remote.lastHeading;
+    float x = remote.roll;
+    float y = remote.pitch;
+    float z = remote.heading;
     // TODO: These adjustments are ill-understood, but make the measurements
     // sensical for my setup. Probably going to need to be able to adjust
     // these at runtime.

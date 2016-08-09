@@ -39,10 +39,10 @@ void DashboardViewController::tick() {
         _lag->set(lastRoundtrip);
         _rssi->set(lastRssi);
 
-        _rvcc->set(remote.lastVcc);
-        _vib->set(remote.lastVibration);
-        _rrssi->set(remote.lastRssi);
-        _altitude->set(remote.lastAltitude);
+        _rvcc->set(remote.vcc);
+        _vib->set(remote.vibration);
+        _rrssi->set(remote.rssi);
+        _altitude->set(remote.altitude);
 
         _lastUpdate = lastUpdate;
 

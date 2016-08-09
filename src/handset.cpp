@@ -193,48 +193,48 @@ void writeLog() {
     dataFile.print(F("\t"));
 
     // Remote sensor readings
-    if (validReadingi(remote.lastVcc)) {
-        dataFile.print(remote.lastVcc);
+    if (validReadingi(remote.vcc)) {
+        dataFile.print(remote.vcc);
     }
     dataFile.print(F("\t"));
-    if (validReadingi(remote.lastRssi)) {
-        dataFile.print(remote.lastRssi);
+    if (validReadingi(remote.rssi)) {
+        dataFile.print(remote.rssi);
     }
     dataFile.print(F("\t"));
-    if (validReadingi(remote.lastVibration)) {
-        dataFile.print(remote.lastVibration);
+    if (validReadingi(remote.vibration)) {
+        dataFile.print(remote.vibration);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastAltitude)) {
-        dataFile.print(remote.lastAltitude);
+    if (validReadingf(remote.altitude)) {
+        dataFile.print(remote.altitude);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastTemp)) {
-        dataFile.print(remote.lastTemp);
+    if (validReadingf(remote.temp)) {
+        dataFile.print(remote.temp);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastPitch)) {
-        dataFile.print(remote.lastPitch);
+    if (validReadingf(remote.pitch)) {
+        dataFile.print(remote.pitch);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastRoll)) {
-        dataFile.print(remote.lastRoll);
+    if (validReadingf(remote.roll)) {
+        dataFile.print(remote.roll);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastHeading)) {
-        dataFile.print(remote.lastHeading);
+    if (validReadingf(remote.heading)) {
+        dataFile.print(remote.heading);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastGyroX)) {
-        dataFile.print(remote.lastGyroX);
+    if (validReadingf(remote.gyroX)) {
+        dataFile.print(remote.gyroX);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastGyroY)) {
-        dataFile.print(remote.lastGyroY);
+    if (validReadingf(remote.gyroY)) {
+        dataFile.print(remote.gyroY);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.lastGyroZ)) {
-        dataFile.print(remote.lastGyroZ);
+    if (validReadingf(remote.gyroZ)) {
+        dataFile.print(remote.gyroZ);
     }
     dataFile.println(F("\t"));
     dataFile.sync();

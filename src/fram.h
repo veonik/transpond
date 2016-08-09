@@ -26,6 +26,8 @@ private:
         byte b[4];
     } _buffer;
 
+    // Create a map and you can make a key-value memory
+
 public:
     FRAM() {
         _fram = Adafruit_FRAM_I2C();
