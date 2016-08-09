@@ -4,14 +4,6 @@ extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
 TouchScreen screen = TouchScreen(XP, YP, XM, YM);
 
-int freeRam ()
-{
-    extern int __heap_start, *__brkval;
-    int v;
-    return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
-}
-
-
 void Pipeline::segueTo(ViewController *nextController) {
     flush();
     if (_previousController != NULL) {
