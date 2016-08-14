@@ -5,7 +5,7 @@
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
 
-extern metrics remote;
+extern metrics m;
 
 void PositionViewController::tick() {
     _btnExit->tick();
@@ -18,9 +18,9 @@ void PositionViewController::tick() {
 }
 
 void PositionViewController::draw() {
-    float x = remote.roll;
-    float y = remote.pitch;
-    float z = remote.heading;
+    float x = m.roll;
+    float y = m.pitch;
+    float z = m.heading;
     // TODO: These adjustments are ill-understood, but make the measurements
     // sensical for my setup. Probably going to need to be able to adjust
     // these at runtime.

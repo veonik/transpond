@@ -1,5 +1,5 @@
-#ifndef _UTIL_H_
-#define _UTIL_H_
+#ifndef TRANSPOND_UTIL_H
+#define TRANSPOND_UTIL_H
 
 // From: http://provideyourown.com/2012/secret-arduino-voltmeter-measure-battery-voltage/
 int readVcc() {

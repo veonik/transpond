@@ -1,5 +1,5 @@
-#ifndef _SETTINGS_H_
-#define _SETTINGS_H_
+#ifndef TRANSPOND_SETTINGS_H
+#define TRANSPOND_SETTINGS_H
 
 #include "gui.h"
 
@@ -7,7 +7,7 @@ class SettingsViewController : public ViewController {
 private:
     Button *_btnExit;
 
-    Button *_btnVibOffset;
+    Button *_btnConfigVib;
 
 public:
     SettingsViewController() : ViewController() { }
@@ -24,7 +24,7 @@ public:
 
     void deinit() {
         delete _btnExit;
-        delete _btnVibOffset;
+        delete _btnConfigVib;
     }
 };
 

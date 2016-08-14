@@ -1,10 +1,10 @@
-#ifndef _MESSAGE_H_
-#define _MESSAGE_H_
+#ifndef TRANSPOND_MESSAGE_H
+#define TRANSPOND_MESSAGE_H
 
 #include <Arduino.h>
 #include <limits.h>
+#include "command.h"
 
-const size_t PACKED_SIZE = 42;
 const int NO_READING_INT = INT_MAX;
 const float NO_READING_FLOAT = NAN;
 const unsigned long NO_READING_ULONG = ULONG_MAX;
@@ -13,10 +13,9 @@ const unsigned long NO_READING_ULONG = ULONG_MAX;
 #define validReadingi(i) i != NO_READING_INT
 #define invalidReadingf(f) isnan(f)
 #define invalidReadingi(i) i == NO_READING_INT
-#define invalidReadingULong(l) l == NO_READING_ULONG;
-#define validReadingULong(l) l != NO_READING_ULONG;
 
-// 110 bytes-1-1-2-2-2-1-2-2=97
+
+// 6 + 8 + 128 = 142 bytes - 1 - 1 - 2 - 2 - 2 -2 -2 -2 -1 - 1-2 -2-2 = 120 bytes
 struct metrics {
     // no unit; raw sensor data
     int vibration;      // -> pack into unsigned byte (Will overflow on >255)
@@ -144,8 +143,22 @@ struct metrics {
     }
 };
 
-size_t pack(metrics m, char *bytes);
+class AckCommand : Command {
+public:
+    AckCommand() : Command() {}
 
-size_t unpack(const char *bytes, metrics &m);
+    size_t pack(char *buf);
+
+    size_t unpack(char *buf);
+};
+
+class Ack2Command : Command {
+public:
+    Ack2Command() : Command() {}
+
+    size_t pack(char *buf);
+
+    size_t unpack(char *buf);
+};
 
 #endif

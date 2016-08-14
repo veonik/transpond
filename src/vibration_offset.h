@@ -1,16 +1,16 @@
-#ifndef _VIB_OFFSET_H_
-#define _VIB_OFFSET_H_
+#ifndef TRANSPOND_VIB_OFFSET_H
+#define TRANSPOND_VIB_OFFSET_H
 
 #include "gui.h"
 
-class VibrationOffsetViewController : public ViewController {
+class VibrationConfigViewController : public ViewController {
 private:
     Button *_btnExit;
 
 public:
-    VibrationOffsetViewController() : ViewController() { }
+    VibrationConfigViewController() : ViewController() { }
 
-    ~VibrationOffsetViewController() {
+    ~VibrationConfigViewController() {
         deinit();
     }
 

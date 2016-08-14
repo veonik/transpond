@@ -28,7 +28,9 @@ SdVolume volume;
 SdFile root;
 SdFile dataFile;
 
-metrics remote;
+metrics m;
+AckCommand ackCommand = AckCommand();
+Ack2Command ac2Command = Ack2Command();
 
 unsigned long lastTick;
 unsigned long lastUpdate;
@@ -44,6 +46,7 @@ long ticks;
 long sends;
 
 bool disableLogging = false;
+bool sendInfx = false;
 
 const long MIN_SEND_WAIT = 100;  // in ms
 const long MAX_SEND_WAIT = 1000; // in ms
@@ -62,16 +65,20 @@ void onMessageReceived(Message *msg) {
     Serial.println(" bytes");
 #endif
     // expects "ack<data>"
-    if (body[0] != 'a' || body[1] != 'c' || body[2] != 'k') {
+    if (body[0] != 'a' || body[1] != 'c') {
         Serial.println("received non-ack or malformed");
         return;
+    }
+    if (body[2] == 'k') {
+        ackCommand.unpack((char *)body);
+    } else if (body[2] == '2') {
+        ac2Command.unpack((char *)body);
     }
 
     lastAck = ack;
     lastRssi = msg->rssi;
     lastRoundtrip = (int) (lastAck-lastSent);
 
-    unpack((char *)body, remote);
 }
 
 #ifdef DEBUG
@@ -193,48 +200,48 @@ void writeLog() {
     dataFile.print(F("\t"));
 
     // Remote sensor readings
-    if (validReadingi(remote.vcc)) {
-        dataFile.print(remote.vcc);
+    if (validReadingi(m.vcc)) {
+        dataFile.print(m.vcc);
     }
     dataFile.print(F("\t"));
-    if (validReadingi(remote.rssi)) {
-        dataFile.print(remote.rssi);
+    if (validReadingi(m.rssi)) {
+        dataFile.print(m.rssi);
     }
     dataFile.print(F("\t"));
-    if (validReadingi(remote.vibration)) {
-        dataFile.print(remote.vibration);
+    if (validReadingi(m.vibration)) {
+        dataFile.print(m.vibration);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.altitude)) {
-        dataFile.print(remote.altitude);
+    if (validReadingf(m.altitude)) {
+        dataFile.print(m.altitude);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.temp)) {
-        dataFile.print(remote.temp);
+    if (validReadingf(m.temp)) {
+        dataFile.print(m.temp);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.pitch)) {
-        dataFile.print(remote.pitch);
+    if (validReadingf(m.pitch)) {
+        dataFile.print(m.pitch);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.roll)) {
-        dataFile.print(remote.roll);
+    if (validReadingf(m.roll)) {
+        dataFile.print(m.roll);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.heading)) {
-        dataFile.print(remote.heading);
+    if (validReadingf(m.heading)) {
+        dataFile.print(m.heading);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.gyroX)) {
-        dataFile.print(remote.gyroX);
+    if (validReadingf(m.gyroX)) {
+        dataFile.print(m.gyroX);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.gyroY)) {
-        dataFile.print(remote.gyroY);
+    if (validReadingf(m.gyroY)) {
+        dataFile.print(m.gyroY);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(remote.gyroZ)) {
-        dataFile.print(remote.gyroZ);
+    if (validReadingf(m.gyroZ)) {
+        dataFile.print(m.gyroZ);
     }
     dataFile.println(F("\t"));
     dataFile.sync();
@@ -274,8 +281,15 @@ void loop() {
             Serial.println("ms");
         }
 
-        Message msg("helo");
-        radio->send(&msg);
+        if (sendInfx) {
+            sendInfx = false;
+            Message msg("infx");
+            radio->send(&msg);
+        } else {
+            Message msg("helo");
+            radio->send(&msg);
+            sendInfx = true;
+        }
     }
 
     // Update metrics.
@@ -300,7 +314,7 @@ void loop() {
         }
 
         if (lastAck + TIMEOUT_WAIT < lastSent) {
-            remote.setNoReading();
+            m.setNoReading();
             lastRoundtrip = NO_READING_INT;
             lastRssi = NO_READING_INT;
         }
@@ -352,6 +366,11 @@ void loop() {
             Serial.println(F("ms"));
             printTicks = (int) cmd.substring(1).toInt();
             printTicksI = 0;
+        } else if (cmd[0] == 'G') {
+            Serial.print(F("Location: "));
+            Serial.print(m.latitude, 6);
+            Serial.print(F(","));
+            Serial.println(m.longitude, 6);
         }
     }
 }

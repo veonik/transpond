@@ -1,5 +1,5 @@
-#ifndef _PROGRAMS_H_
-#define _PROGRAMS_H_
+#ifndef TRANSPOND_PROGRAMS_H
+#define TRANSPOND_PROGRAMS_H
 
 #include "gui.h"
 

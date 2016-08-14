@@ -1,5 +1,5 @@
-#ifndef _DASHBOARD_H_
-#define _DASHBOARD_H_
+#ifndef TRANSPOND_DASHBOARD_H
+#define TRANSPOND_DASHBOARD_H
 
 #include "gui.h"
 

@@ -1,5 +1,5 @@
-#ifndef _POSITION_H_
-#define _POSITION_H_
+#ifndef TRANSPOND_POSITION_H
+#define TRANSPOND_POSITION_H
 
 #include "gui.h"
 

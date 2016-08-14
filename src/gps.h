@@ -1,5 +1,5 @@
-#ifndef _GPS_H_
-#define _GPS_H_
+#ifndef TRANSPOND_GPS_H
+#define TRANSPOND_GPS_H
 
 /**
  * These were pulled out of the Adafruit_GPS library.

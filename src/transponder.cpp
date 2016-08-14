@@ -8,7 +8,6 @@
 #include <Adafruit_LSM303_U.h>
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_L3GD20_U.h>
-#include <Adafruit_10DOF.h>
 #include <Adafruit_BNO055.h>
 
 #include <gSoftSerial.h>
@@ -21,7 +20,6 @@
 
 Radio *radio;
 
-Adafruit_10DOF                dof   = Adafruit_10DOF();
 Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(30301);
 Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
 Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
@@ -98,12 +96,22 @@ int printOrientationI;
 int printGps;
 int printGpsI;
 
+AckCommand ackCommand = AckCommand();
+Ack2Command ac2Command = Ack2Command();
+
 void onMessageReceived(Message *msg) {
     lastReceipt = micros();
     m.rssi = msg->rssi;
-
-    char ack[PACKED_SIZE];
-    size_t s = pack(m, ack);
+    size_t s;
+    char ack[61];
+    if (strcmp(msg->getBody(), "helo") == 0) {
+         s = ackCommand.pack(ack);
+    } else if (strcmp(msg->getBody(), "infx") == 0) {
+        s = ac2Command.pack(ack);
+    } else {
+        Serial.print(F("unknown command received: "));
+        Serial.println(msg->getBody());
+    }
 
 #ifdef DEBUGV
     Serial.print(F("sending "));
@@ -128,7 +136,7 @@ void update() {
         && magEnabled
         && accel.getEvent(&accel_event)
         && mag.getEvent(&mag_event)
-        && dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)
+//        && dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)
     ) {
         m.accelX = accel_event.acceleration.x;
         m.accelY = accel_event.acceleration.y;
@@ -138,9 +146,9 @@ void update() {
         m.magZ =mag_event.magnetic.z;
 
         // TODO: Tilt compensation
-        m.roll = orientation.roll;
-        m.pitch = orientation.pitch;
-        m.heading = orientation.heading;
+//        m.roll = orientation.roll;
+//        m.pitch = orientation.pitch;
+//        m.heading = orientation.heading;
 #ifndef DEBUGV
         if (printOrientationI < printOrientation) {
             printOrientationI++;
@@ -213,28 +221,28 @@ void update() {
         imu::Vector<3> bno_accel = bno.getVector(bno.VECTOR_ACCELEROMETER);
         imu::Vector<3> bno_gyro = bno.getVector(bno.VECTOR_GYROSCOPE);
         imu::Vector<3> bno_mag = bno.getVector(bno.VECTOR_MAGNETOMETER);
-        m.accel2X = bno_accel.x();
-        m.accel2Y = bno_accel.y();
-        m.accel2Z = bno_accel.z();
-        m.mag2X = bno_mag.x();
-        m.mag2Y = bno_mag.y();
-        m.mag2Z = bno_mag.z();
-        m.gyro2X = bno_gyro.x();
-        m.gyro2Y = bno_gyro.y();
-        m.gyro2Z = bno_gyro.z();
+        m.accel2X = (float) bno_accel.x();
+        m.accel2Y = (float) bno_accel.y();
+        m.accel2Z = (float) bno_accel.z();
+        m.mag2X = (float) bno_mag.x();
+        m.mag2Y = (float) bno_mag.y();
+        m.mag2Z = (float) bno_mag.z();
+        m.gyro2X = (float) bno_gyro.x();
+        m.gyro2Y = (float) bno_gyro.y();
+        m.gyro2Z = (float) bno_gyro.z();
         m.temp2 = bno.getTemp();
-
-        accel_event.acceleration.x = m.accel2X;
-        accel_event.acceleration.y = m.accel2Y;
-        accel_event.acceleration.z = m.accel2Z;
-        mag_event.magnetic.x = m.mag2X;
-        mag_event.magnetic.y = m.mag2Y;
-        mag_event.magnetic.z = m.mag2Z;
-
-        dof.fusionGetOrientation(&accel_event, &mag_event, &orientation);
-        m.roll2 = orientation.roll;
-        m.pitch2 = orientation.pitch;
-        m.heading2 = orientation.heading;
+//
+//        accel_event.acceleration.x = m.accel2X;
+//        accel_event.acceleration.y = m.accel2Y;
+//        accel_event.acceleration.z = m.accel2Z;
+//        mag_event.magnetic.x = m.mag2X;
+//        mag_event.magnetic.y = m.mag2Y;
+//        mag_event.magnetic.z = m.mag2Z;
+//
+//        dof.fusionGetOrientation(&accel_event, &mag_event, &orientation);
+//        m.roll2 = orientation.roll;
+//        m.pitch2 = orientation.pitch;
+//        m.heading2 = orientation.heading;
 
 #ifndef DEBUGV
         if (printOrientationI < printOrientation) {
@@ -263,37 +271,9 @@ void update() {
 #endif
             Serial.print(F("Location: "));
             if (gps.location.isValid()) {
-                Serial.print(gps.location.lat(), 6);
+                Serial.print(m.latitude, 6);
                 Serial.print(F(","));
-                Serial.print(gps.location.lng(), 6);
-            } else {
-                Serial.print(F("INVALID"));
-            }
-
-            Serial.print(F("  Date/Time: "));
-            if (gps.date.isValid()) {
-                Serial.print(gps.date.month());
-                Serial.print(F("/"));
-                Serial.print(gps.date.day());
-                Serial.print(F("/"));
-                Serial.print(gps.date.year());
-            } else {
-                Serial.print(F("INVALID"));
-            }
-
-            Serial.print(F(" "));
-            if (gps.time.isValid()) {
-                if (gps.time.hour() < 10) Serial.print(F("0"));
-                Serial.print(gps.time.hour());
-                Serial.print(F(":"));
-                if (gps.time.minute() < 10) Serial.print(F("0"));
-                Serial.print(gps.time.minute());
-                Serial.print(F(":"));
-                if (gps.time.second() < 10) Serial.print(F("0"));
-                Serial.print(gps.time.second());
-                Serial.print(F("."));
-                if (gps.time.centisecond() < 10) Serial.print(F("0"));
-                Serial.print(gps.time.centisecond());
+                Serial.print(m.longitude, 6);
             } else {
                 Serial.print(F("INVALID"));
             }

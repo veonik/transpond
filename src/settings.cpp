@@ -6,7 +6,7 @@ extern Pipeline *pipe;
 
 void SettingsViewController::tick() {
     _btnExit->tick();
-    _btnVibOffset->tick();
+    _btnConfigVib->tick();
 }
 
 void SettingsViewController::draw() {
@@ -23,13 +23,13 @@ void SettingsViewController::init() {
     }, NULL);
     pipe->push(drawControlForwarder, _btnExit);
 
-    _btnVibOffset = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
-    _btnVibOffset->setLabel("Vibration Offset");
-    _btnVibOffset->fontSize = 2;
-    _btnVibOffset->then([](void *context) {
-        pipe->seguePopover(new VibrationOffsetViewController());
+    _btnConfigVib = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
+    _btnConfigVib->setLabel("Config Vib");
+    _btnConfigVib->fontSize = 2;
+    _btnConfigVib->then([](void *context) {
+        pipe->seguePopover(new VibrationConfigViewController());
     }, NULL);
-    pipe->push(drawControlForwarder, _btnVibOffset);
+    pipe->push(drawControlForwarder, _btnConfigVib);
 
 
 }

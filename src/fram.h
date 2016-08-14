@@ -1,5 +1,5 @@
-#ifndef _FRAM_H_
-#define _FRAM_H_
+#ifndef TRANSPOND_FRAM_H
+#define TRANSPOND_FRAM_H
 
 #include <Adafruit_FRAM_I2C.h>
 

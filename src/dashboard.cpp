@@ -6,7 +6,7 @@
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
 
-extern metrics remote;
+extern metrics m;
 
 extern unsigned long lastTick;
 extern unsigned long lastUpdate;
@@ -39,10 +39,10 @@ void DashboardViewController::tick() {
         _lag->set(lastRoundtrip);
         _rssi->set(lastRssi);
 
-        _rvcc->set(remote.vcc);
-        _vib->set(remote.vibration);
-        _rrssi->set(remote.rssi);
-        _altitude->set(remote.altitude);
+        _rvcc->set(m.vcc);
+        _vib->set(m.vibration);
+        _rrssi->set(m.rssi);
+        _altitude->set(m.altitude);
 
         _lastUpdate = lastUpdate;
 

@@ -1,5 +1,5 @@
-#ifndef _GRAPHICS_TEST_H_
-#define _GRAPHICS_TEST_H_
+#ifndef TRANSPOND_GRAPHICS_TEST_H
+#define TRANSPOND_GRAPHICS_TEST_H
 
 #include "gui.h"
 

@@ -1,5 +1,5 @@
-#ifndef _GUI_H_
-#define _GUI_H_
+#ifndef TRANSPOND_GUI_H
+#define TRANSPOND_GUI_H
 
 #include <Arduino.h>
 #include <Adafruit_ILI9341.h>

@@ -3,15 +3,15 @@
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
 
-void VibrationOffsetViewController::tick() {
+void VibrationConfigViewController::tick() {
     _btnExit->tick();
 }
 
-void VibrationOffsetViewController::draw() {
+void VibrationConfigViewController::draw() {
     tft.fillScreen(0x2104);
 }
 
-void VibrationOffsetViewController::init() {
+void VibrationConfigViewController::init() {
     pipe->push(drawViewControllerForwarder, this);
 
     _btnExit = new Button(Point{x: 200, y: 10}, Size{w: 30, h: 30});

@@ -1,5 +1,5 @@
-#ifndef _INPUT_H_
-#define _INPUT_H_
+#ifndef TRANSPOND_INPUT_H
+#define TRANSPOND_INPUT_H
 
 #include "gui.h"
 
