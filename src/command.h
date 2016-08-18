@@ -5,7 +5,7 @@
 
 class Command {
 private:
-    static union {
+    union {
         int i;
         float f;
         long l;
@@ -13,15 +13,15 @@ private:
     } val;
 
 protected:
-    static char *packChar(char *buf, char b);
-    static char *packInt(char *buf, int i);
-    static char *packFloat(char *buf, float f);
-    static char *packLong(char *buf, long l);
+    char *packChar(char *buf, char b);
+    char *packInt(char *buf, int i);
+    char *packFloat(char *buf, float f);
+    char *packLong(char *buf, long l);
 
-    static char *unpackChar(char *b, char *buf);
-    static char *unpackInt(int *i, char *buf);
-    static char *unpackFloat(float *f, char *buf);
-    static char *unpackLong(long *l, char *buf);
+    char *unpackChar(char *b, char *buf);
+    char *unpackInt(int *i, char *buf);
+    char *unpackFloat(float *f, char *buf);
+    char *unpackLong(long *l, char *buf);
 
 public:
     Command() {}

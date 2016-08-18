@@ -14,14 +14,12 @@ const unsigned long NO_READING_ULONG = ULONG_MAX;
 #define invalidReadingf(f) isnan(f)
 #define invalidReadingi(i) i == NO_READING_INT
 
-
-// 6 + 8 + 128 = 142 bytes - 1 - 1 - 2 - 2 - 2 -2 -2 -2 -1 - 1-2 -2-2 = 120 bytes
 struct metrics {
     // no unit; raw sensor data
-    int vibration;      // -> pack into unsigned byte (Will overflow on >255)
+    int vibration;
 
     // in dBm
-    int rssi;           // -> pack into unsigned byte (always assumed -)
+    int rssi;
 
     // in mV
     int vcc;
@@ -32,28 +30,19 @@ struct metrics {
     // format: HHMMSSDD
     unsigned long time;
 
-    // in degrees
-    float roll;         // -> pack into int (-18000 to 18000)
-    float pitch;        // -> pack into int
-    float heading;      // -> pack into int
-
-    float roll2;         // -> pack into int (-18000 to 18000)
-    float pitch2;        // -> pack into int
-    float heading2;      // -> pack into int
-
     // in C
-    float temp;         // -> change to int, pack in a byte
+    float temp;
     float temp2;
 
     // in meters
-    float altitude;     // -> pack into unsigned int
-    float altitudeGps;  // -> pack into unsigned int
+    float altitude;
+    float altitudeGps;
 
     // in m/s
     float speed;
 
     // deg
-    float course;       // -> pack into int (-18000 to 18000)
+    float course;
 
     // deg
     float latitude;
@@ -93,14 +82,6 @@ struct metrics {
 
         date        =
         time        = NO_READING_ULONG;
-
-        roll        =
-        pitch       =
-        heading     =
-
-        roll2       =
-        pitch2      =
-        heading2    =
 
         temp        =
         temp2       =
@@ -143,18 +124,28 @@ struct metrics {
     }
 };
 
-class AckCommand : Command {
+class AckCommand : public Command {
+private:
+    metrics *m;
+
 public:
-    AckCommand() : Command() {}
+    AckCommand(metrics *m) : Command() {
+        this->m = m;
+    }
 
     size_t pack(char *buf);
 
     size_t unpack(char *buf);
 };
 
-class Ack2Command : Command {
+class Ack2Command : public Command {
+private:
+    metrics *m;
+
 public:
-    Ack2Command() : Command() {}
+    Ack2Command(metrics *m) : Command() {
+        this->m = m;
+    }
 
     size_t pack(char *buf);
 

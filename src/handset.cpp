@@ -29,8 +29,8 @@ SdFile root;
 SdFile dataFile;
 
 metrics m;
-AckCommand ackCommand = AckCommand();
-Ack2Command ac2Command = Ack2Command();
+AckCommand ackCommand = AckCommand(&m);
+Ack2Command ac2Command = Ack2Command(&m);
 
 unsigned long lastTick;
 unsigned long lastUpdate;
@@ -212,6 +212,10 @@ void writeLog() {
         dataFile.print(m.vibration);
     }
     dataFile.print(F("\t"));
+    if (validReadingf(m.altitudeGps)) {
+        dataFile.print(m.altitudeGps);
+    }
+    dataFile.print(F("\t"));
     if (validReadingf(m.altitude)) {
         dataFile.print(m.altitude);
     }
@@ -220,16 +224,40 @@ void writeLog() {
         dataFile.print(m.temp);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(m.pitch)) {
-        dataFile.print(m.pitch);
+    if (validReadingf(m.temp2)) {
+        dataFile.print(m.temp2);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(m.roll)) {
-        dataFile.print(m.roll);
+    if (validReadingf(m.latitude)) {
+        dataFile.print(m.latitude, 6);
     }
     dataFile.print(F("\t"));
-    if (validReadingf(m.heading)) {
-        dataFile.print(m.heading);
+    if (validReadingf(m.longitude)) {
+        dataFile.print(m.longitude, 6);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.accelX)) {
+        dataFile.print(m.accelX);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.accelY)) {
+        dataFile.print(m.accelY);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.accelZ)) {
+        dataFile.print(m.accelZ);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.magX)) {
+        dataFile.print(m.magX);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.magY)) {
+        dataFile.print(m.magY);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.magZ)) {
+        dataFile.print(m.magZ);
     }
     dataFile.print(F("\t"));
     if (validReadingf(m.gyroX)) {
@@ -242,6 +270,42 @@ void writeLog() {
     dataFile.print(F("\t"));
     if (validReadingf(m.gyroZ)) {
         dataFile.print(m.gyroZ);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.accel2X)) {
+        dataFile.print(m.accel2X);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.accel2Y)) {
+        dataFile.print(m.accel2Y);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.accel2Z)) {
+        dataFile.print(m.accel2Z);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.mag2X)) {
+        dataFile.print(m.mag2X);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.mag2Y)) {
+        dataFile.print(m.mag2Y);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.mag2Z)) {
+        dataFile.print(m.mag2Z);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.gyro2X)) {
+        dataFile.print(m.gyro2X);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.gyro2Y)) {
+        dataFile.print(m.gyro2Y);
+    }
+    dataFile.print(F("\t"));
+    if (validReadingf(m.gyro2Z)) {
+        dataFile.print(m.gyro2Z);
     }
     dataFile.println(F("\t"));
     dataFile.sync();

@@ -18,9 +18,9 @@ void PositionViewController::tick() {
 }
 
 void PositionViewController::draw() {
-    float x = m.roll;
-    float y = m.pitch;
-    float z = m.heading;
+    float x = 0;//m.roll;
+    float y = 0;//m.pitch;
+    float z = 0;//m.heading;
     // TODO: These adjustments are ill-understood, but make the measurements
     // sensical for my setup. Probably going to need to be able to adjust
     // these at runtime.

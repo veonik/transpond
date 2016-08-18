@@ -91,26 +91,27 @@ void initSensors() {
     gpsSerial.println(PMTK_API_SET_FIX_CTL_5HZ);
 }
 
-int printOrientation;
-int printOrientationI;
 int printGps;
 int printGpsI;
 
-AckCommand ackCommand = AckCommand();
-Ack2Command ac2Command = Ack2Command();
+AckCommand ackCommand = AckCommand(&m);
+Ack2Command ac2Command = Ack2Command(&m);
 
 void onMessageReceived(Message *msg) {
     lastReceipt = micros();
     m.rssi = msg->rssi;
     size_t s;
     char ack[61];
-    if (strcmp(msg->getBody(), "helo") == 0) {
-         s = ackCommand.pack(ack);
-    } else if (strcmp(msg->getBody(), "infx") == 0) {
+    char cmd[5];
+    strncpy(cmd, msg->getBody(), 4);
+    if (strncmp(cmd, "helo", 4) == 0) {
+        s = ackCommand.pack(ack);
+    } else if (strncmp(cmd, "infx", 4) == 0) {
         s = ac2Command.pack(ack);
     } else {
         Serial.print(F("unknown command received: "));
         Serial.println(msg->getBody());
+        return;
     }
 
 #ifdef DEBUGV
@@ -131,49 +132,28 @@ void update() {
     sensors_event_t mag_event;
     sensors_event_t bmp_event;
     sensors_event_t gyro_event;
-    sensors_vec_t   orientation;
-    if (accelEnabled
-        && magEnabled
-        && accel.getEvent(&accel_event)
-        && mag.getEvent(&mag_event)
-//        && dof.fusionGetOrientation(&accel_event, &mag_event, &orientation)
-    ) {
+    if (accelEnabled && accel.getEvent(&accel_event)) {
         m.accelX = accel_event.acceleration.x;
         m.accelY = accel_event.acceleration.y;
         m.accelZ = accel_event.acceleration.z;
-        m.magX = mag_event.magnetic.x;
-        m.magY = mag_event.magnetic.y;
-        m.magZ =mag_event.magnetic.z;
 
-        // TODO: Tilt compensation
-//        m.roll = orientation.roll;
-//        m.pitch = orientation.pitch;
-//        m.heading = orientation.heading;
-#ifndef DEBUGV
-        if (printOrientationI < printOrientation) {
-            printOrientationI++;
-#endif
-        Serial.print(F("Orientation :\t"));
-        Serial.print(orientation.roll);
-        Serial.print(F("\t"));
-        Serial.print(orientation.pitch);
-        Serial.print(F("\t"));
-        Serial.print(orientation.heading);
-        Serial.println(F("\tdegs"));
-#ifndef DEBUGV
-        }
-#endif
     } else {
-        m.roll = NO_READING_FLOAT;
-        m.pitch = NO_READING_FLOAT;
-        m.heading = NO_READING_FLOAT;
-#ifdef DEBUGV
-
-        Serial.println(F("Unable to read pitch/roll/heading"));
-#endif
+        m.accelX = NO_READING_FLOAT;
+        m.accelY = NO_READING_FLOAT;
+        m.accelZ = NO_READING_FLOAT;
     }
 
-    if (bmpEnabled && bmp.getEvent(&bmp_event) && bmp_event.pressure) {
+    if (magEnabled && mag.getEvent(&mag_event)) {
+        m.magX = mag_event.magnetic.x;
+        m.magY = mag_event.magnetic.y;
+        m.magZ = mag_event.magnetic.z;
+    } else {
+        m.magX = NO_READING_FLOAT;
+        m.magY = NO_READING_FLOAT;
+        m.magZ = NO_READING_FLOAT;
+    }
+
+    if (bmpEnabled && bmp.getEvent(&bmp_event)) {
         float temperature;
         bmp.getTemperature(&temperature);
         m.temp = temperature;
@@ -231,32 +211,6 @@ void update() {
         m.gyro2Y = (float) bno_gyro.y();
         m.gyro2Z = (float) bno_gyro.z();
         m.temp2 = bno.getTemp();
-//
-//        accel_event.acceleration.x = m.accel2X;
-//        accel_event.acceleration.y = m.accel2Y;
-//        accel_event.acceleration.z = m.accel2Z;
-//        mag_event.magnetic.x = m.mag2X;
-//        mag_event.magnetic.y = m.mag2Y;
-//        mag_event.magnetic.z = m.mag2Z;
-//
-//        dof.fusionGetOrientation(&accel_event, &mag_event, &orientation);
-//        m.roll2 = orientation.roll;
-//        m.pitch2 = orientation.pitch;
-//        m.heading2 = orientation.heading;
-
-#ifndef DEBUGV
-        if (printOrientationI < printOrientation) {
-#endif
-            Serial.print(F("Orientation2:\t"));
-            Serial.print(orientation.roll);
-            Serial.print(F("\t"));
-            Serial.print(orientation.pitch);
-            Serial.print(F("\t"));
-            Serial.print(orientation.heading);
-            Serial.println(F("\tdegs"));
-#ifndef DEBUGV
-        }
-#endif
     }
 
     if (gps.location.isUpdated()) {
@@ -349,9 +303,6 @@ void loop() {
             Serial.print(F("RAM free: "));
             Serial.print(freeRam());
             Serial.println(F(" bytes"));
-        } else if (cmd == 'P') {
-            printOrientation = 100;
-            printOrientationI = 0;
         } else if (cmd == 'G') {
             printGps = 5;
             printGpsI = 0;

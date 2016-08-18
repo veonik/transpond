@@ -1,322 +1,122 @@
 #include "message.h"
 
-extern metrics m;
-
-union {
-    float f;
-    int i;
-    unsigned int ui;
-    char b[4];
-} mval;
-
 size_t AckCommand::unpack(char *buf) {
-    int i = 3;
+    char *p = buf;
+    p += 3;
 
-    m.vibration = (int) buf[i++];
+    char c;
+    p = unpackChar(&c, p);
+    m->vibration = (int) c;
+    p = unpackChar(&c, p);
+    m->rssi = -1 * (int) c;
 
-    m.rssi = -1 * (int) buf[i++];
+    p = unpackInt(&m->vcc, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    m.vcc = mval.i;
+    p = unpackFloat(&m->latitude, p);
+    p = unpackFloat(&m->longitude, p);
+    int i;
+    p = unpackInt(&i, p);
+    m->temp = i / 100.0f;
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.latitude = mval.f;
+    p = unpackInt(&i, p);
+    m->altitude = i / 10.0f;
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.longitude = mval.f;
+    p = unpackFloat(&m->altitudeGps, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    m.temp = mval.i / 100.f;
+    p = unpackFloat(&m->accelX, p);
+    p = unpackFloat(&m->accelY, p);
+    p = unpackFloat(&m->accelZ, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    m.temp2 = mval.i / 100.f;
+    p = unpackFloat(&m->magX, p);
+    p = unpackFloat(&m->magY, p);
+    p = unpackFloat(&m->magZ, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    m.altitude = mval.ui / 10.0f;
+    p = unpackFloat(&m->gyroX, p);
+    p = unpackFloat(&m->gyroY, p);
+    p = unpackFloat(&m->gyroZ, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.altitudeGps = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.gyroX = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.gyroY = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.gyroZ = mval.f;
-
-    return i;
+    return p - buf;
 }
 
 size_t AckCommand::pack(char *buf) {
-    int i = 0;
-    buf[i++] = 'a';
-    buf[i++] = 'c';
-    buf[i++] = 'k';
+    char *p = buf;
+    p = packChar(p, 'a');
+    p = packChar(p, 'c');
+    p = packChar(p, 'k');
+    p = packChar(p, (char) m->vibration);
+    p = packChar(p, (char) abs(m->rssi));
+    p = packInt(p, m->vcc);
+    p = packFloat(p, m->latitude);
+    p = packFloat(p, m->longitude);
+    p = packInt(p, (int) m->temp * 100);
+    p = packInt(p, (int) round(m->altitude * 10));
+    p = packFloat(p, m->altitudeGps);
 
-    buf[i++] = (char) m.vibration;
+    p = packFloat(p, m->accelX);
+    p = packFloat(p, m->accelY);
+    p = packFloat(p, m->accelZ);
 
-    buf[i++] = (char) abs(m.rssi);
+    p = packFloat(p, m->magX);
+    p = packFloat(p, m->magY);
+    p = packFloat(p, m->magZ);
 
-    mval.i = m.vcc;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
+    p = packFloat(p, m->gyroX);
+    p = packFloat(p, m->gyroY);
+    p = packFloat(p, m->gyroZ);
 
-    mval.f = m.latitude;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.longitude;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.i = (int) round(m.temp * 100);
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-
-    mval.i = (int) round(m.temp2 * 100);
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-
-    mval.ui = (unsigned int) round(m.altitude * 10);
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-
-    mval.f = m.altitudeGps;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.accelX;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.accelY;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.accelZ;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.magX;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.magY;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.magZ;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.gyroX;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.gyroY;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.gyroZ;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3]; // 58+3
-
-    return i;
+    return p - buf;
 }
 
 
 size_t Ack2Command::unpack(char *buf) {
-    int i = 3;
+    char *p = buf;
+    p += 3;
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.speed = mval.f;
+    int i;
+    p = unpackInt(&i, p);
+    m->temp2 = i / 100.0f;
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.course = mval.f;
+    p = unpackFloat(&m->speed, p);
+    p = unpackFloat(&m->course, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.accel2X = mval.f;
+    p = unpackFloat(&m->accel2X, p);
+    p = unpackFloat(&m->accel2Y, p);
+    p = unpackFloat(&m->accel2Z, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.accel2Y = mval.f;
+    p = unpackFloat(&m->mag2X, p);
+    p = unpackFloat(&m->mag2Y, p);
+    p = unpackFloat(&m->mag2Z, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.accel2Z = mval.f;
+    p = unpackFloat(&m->gyro2X, p);
+    p = unpackFloat(&m->gyro2Y, p);
+    p = unpackFloat(&m->gyro2Z, p);
 
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.mag2X = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.mag2Y = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.mag2Z = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.gyro2X = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.gyro2Y = mval.f;
-
-    mval.b[0] = buf[i++];
-    mval.b[1] = buf[i++];
-    mval.b[2] = buf[i++];
-    mval.b[3] = buf[i++];
-    m.gyro2Z = mval.f;
-
-    return i;
+    return p - buf;
 }
 
 size_t Ack2Command::pack(char *buf) {
-    int i = 0;
-    buf[i++] = 'a';
-    buf[i++] = 'c';
-    buf[i++] = '2';
+    char *p = buf;
+    p = packChar(p, 'a');
+    p = packChar(p, 'c');
+    p = packChar(p, '2');
 
-    mval.f = m.speed;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
+    p = packInt(p, (int) m->temp2 * 100);
 
-    mval.f = m.course;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
+    p = packFloat(p, m->speed);
+    p = packFloat(p, m->course);
 
-    mval.f = m.accel2X;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
+    p = packFloat(p, m->accel2X);
+    p = packFloat(p, m->accel2Y);
+    p = packFloat(p, m->accel2Z);
 
-    mval.f = m.accel2Y;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
+    p = packFloat(p, m->mag2X);
+    p = packFloat(p, m->mag2Y);
+    p = packFloat(p, m->mag2Z);
 
-    mval.f = m.accel2Z;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
+    p = packFloat(p, m->gyro2X);
+    p = packFloat(p, m->gyro2Y);
+    p = packFloat(p, m->gyro2Z);
 
-    mval.f = m.mag2X;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.mag2Y;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.mag2Z;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.gyro2X;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.gyro2Y;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3];
-
-    mval.f = m.gyro2Z;
-    buf[i++] = mval.b[0];
-    buf[i++] = mval.b[1];
-    buf[i++] = mval.b[2];
-    buf[i++] = mval.b[3]; // 44
-
-    return i;
+    return p - buf;
 }
 
