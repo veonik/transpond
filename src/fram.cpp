@@ -49,22 +49,32 @@ bool FRAM::format() {
 }
 
 uint16_t FRAM::write(char c) {
-    _ensureFits(c, 1);
+    _ensureFits(_pos, 1);
     uint16_t pos = _pos;
     _fram.write8(_pos, c);
     return _increment(1);
 }
 
 uint16_t FRAM::write(int i) {
-    _ensureFits(i, 2);
+    _ensureFits(_pos, 2);
     _fram.write8(_pos, lowByte(i));
     _fram.write8(_pos+1, highByte(i));
     return _increment(2);
 }
 
 uint16_t FRAM::write(float f) {
-    _ensureFits(f, 4);
+    _ensureFits(_pos, 4);
     _buffer.f = f;
+    _fram.write8(_pos,   _buffer.b[0]);
+    _fram.write8(_pos+1, _buffer.b[1]);
+    _fram.write8(_pos+2, _buffer.b[2]);
+    _fram.write8(_pos+3, _buffer.b[3]);
+    return _increment(4);
+}
+
+uint16_t FRAM::write(unsigned long ul) {
+    _ensureFits(_pos, 4);
+    _buffer.ul = ul;
     _fram.write8(_pos,   _buffer.b[0]);
     _fram.write8(_pos+1, _buffer.b[1]);
     _fram.write8(_pos+2, _buffer.b[2]);
@@ -95,4 +105,9 @@ char FRAM::readChar(uint16_t pos) {
 float FRAM::readFloat(uint16_t pos) {
     read(pos, (char *)_buffer.b, 4);
     return _buffer.f;
+}
+
+unsigned long FRAM::readULong(uint16_t pos) {
+    read(pos, (char *)_buffer.b, 4);
+    return _buffer.ul;
 }

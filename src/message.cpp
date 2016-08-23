@@ -8,7 +8,7 @@ size_t AckCommand::unpack(char *buf) {
     p = unpackChar(&c, p);
     m->vibration = (int) c;
     p = unpackChar(&c, p);
-    m->rssi = -1 * (int) c;
+    m->rssi = (int) c;
 
     p = unpackInt(&m->vcc, p);
 
@@ -44,7 +44,7 @@ size_t AckCommand::pack(char *buf) {
     p = packChar(p, 'c');
     p = packChar(p, 'k');
     p = packChar(p, (char) m->vibration);
-    p = packChar(p, (char) abs(m->rssi));
+    p = packChar(p, (char) m->rssi);
     p = packInt(p, m->vcc);
     p = packFloat(p, m->latitude);
     p = packFloat(p, m->longitude);

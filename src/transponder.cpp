@@ -74,7 +74,7 @@ void initSensors() {
     } else {
         gyro.enableAutoRange(true);
     }
-    if (!bno.begin()) {
+    if (!bno.begin(Adafruit_BNO055::OPERATION_MODE_AMG)) {
         Serial.println(F("BNO055 not found"));
         bnoEnabled = false;
     }
@@ -213,12 +213,19 @@ void update() {
         m.temp2 = bno.getTemp();
     }
 
-    if (gps.location.isUpdated()) {
+    if (gps.time.isUpdated() && gps.time.isValid()) {
+        m.time = gps.time.value();
+    }
+    if (gps.date.isUpdated() && gps.date.isValid()) {
+        m.date = gps.date.value();
+    }
+    if (gps.altitude.isUpdated() && gps.altitude.isValid()) {
         m.altitudeGps  = (float) gps.altitude.meters();
+    }
+    if (gps.location.isUpdated() && gps.location.isValid()) {
         m.latitude  = (float) gps.location.lat();
         m.longitude = (float) gps.location.lng();
-        m.date = gps.date.value();
-        m.time = gps.time.value();
+
 #ifndef DEBUGV
         if (printGpsI < printGps) {
             printGpsI++;
@@ -244,8 +251,9 @@ void log() {
         return;
     }
 
-    fram.write((int) millis());
-    fram.write(m.vcc);
+    fram.write(millis());
+    fram.write(m.latitude);
+    fram.write(m.longitude);
 }
 
 void setup() {
@@ -307,11 +315,13 @@ void loop() {
             printGps = 5;
             printGpsI = 0;
         } else if (cmd == 'F') {
-            for (uint16_t pos = FRAM_DATA_START; pos < FRAM_DATA_START+40; pos += 4) {
-                Serial.print("VCC at offset ");
-                Serial.print(fram.readInt(pos));
-                Serial.print(": ");
-                Serial.println(fram.readInt(pos+2));
+            for (uint16_t pos = FRAM_DATA_START; pos < FRAM_DATA_START+60; pos += 12) {
+                Serial.print(F("Location at offset "));
+                Serial.print(fram.readULong(pos));
+                Serial.print(F(": "));
+                Serial.print(fram.readFloat(pos+4), 6);
+                Serial.print(F(", "));
+                Serial.println(fram.readFloat(pos+8), 6);
             }
         }
     }

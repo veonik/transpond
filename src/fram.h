@@ -20,6 +20,7 @@ private:
     void _ensureFits(uint16_t pos, uint16_t size);
 
     union {
+        unsigned long ul;
         float f;
         int i;
         char c;
@@ -40,11 +41,13 @@ public:
     uint16_t write(char);
     uint16_t write(int);
     uint16_t write(float);
+    uint16_t write(unsigned long);
 
     uint16_t read(uint16_t start, char *buf, uint16_t size);
     int readInt(uint16_t pos);
     char readChar(uint16_t pos);
     float readFloat(uint16_t pos);
+    unsigned long readULong(uint16_t pos);
 };
 
 #endif

@@ -42,7 +42,7 @@ void DashboardViewController::tick() {
         _rvcc->set(m.vcc);
         _vib->set(m.vibration);
         _rrssi->set(m.rssi);
-        _altitude->set(m.altitude);
+        _altitude->set(m.altitudeGps);
 
         _lastUpdate = lastUpdate;
 
