@@ -65,7 +65,7 @@ void GraphicsTestViewController::draw() {
     }
     tft.setRotation(0);
 
-    pipe->segueTo(new SettingsViewController());
+    pipe->segueBack();
 }
 
 void GraphicsTestViewController::init() {

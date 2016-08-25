@@ -185,7 +185,7 @@ public:
 
     void setValue(const char *val);
     void setValue(long val);
-    void setValue(double val);
+    void setValue(double val, int precision = 2);
 
     const char *getValue();
 

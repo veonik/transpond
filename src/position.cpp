@@ -1,6 +1,14 @@
+#include <EEPROM.h>
 #include "position.h"
 #include "dashboard.h"
 #include "message.h"
+
+const unsigned int CENTER_ADDR = 0x80;
+
+union {
+    long l;
+    byte b[4];
+} val;
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
@@ -15,6 +23,11 @@ void PositionViewController::tick() {
     if (update >= _lastUpdate + UPDATE_WAIT) {
         _lastUpdate = update;
         pipe->push(drawViewControllerForwarder, this);
+
+        _txtPositionLat->setValue(m.latitude, 7);
+        _txtPositionLong->setValue(m.longitude, 7);
+        pipe->push(drawControlForwarder, _txtPositionLat);
+        pipe->push(drawControlForwarder, _txtPositionLong);
     }
 }
 
@@ -191,6 +204,16 @@ void PositionViewController::center() {
     }, NULL);
     pipe->push(drawControlForwarder, _btnCenter);
     pipe->push(drawControlForwarder, _btnExit);
+    val.l = _centerLat;
+    EEPROM.write(CENTER_ADDR, val.b[0]);
+    EEPROM.write(CENTER_ADDR+1, val.b[1]);
+    EEPROM.write(CENTER_ADDR+2, val.b[2]);
+    EEPROM.write(CENTER_ADDR+3, val.b[3]);
+    val.l = _centerLong;
+    EEPROM.write(CENTER_ADDR+4, val.b[0]);
+    EEPROM.write(CENTER_ADDR+5, val.b[1]);
+    EEPROM.write(CENTER_ADDR+6, val.b[2]);
+    EEPROM.write(CENTER_ADDR+7, val.b[3]);
 }
 
 void PositionViewController::init() {
@@ -274,4 +297,25 @@ void PositionViewController::init() {
     _txtZ2Value->fontSize = 1;
     _txtZ2Value->fontColor = ILI9341_WHITE;
     pipe->push(drawControlForwarder, _txtZ2Value);
+
+    _txtPositionLat = new Textbox(Point{x: 10, y: 120}, Size{w: 110, h: 13});
+    _txtPositionLat->fontSize = 1;
+    _txtPositionLat->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _txtPositionLat);
+
+    _txtPositionLong = new Textbox(Point{x: 120, y: 120}, Size{w: 110, h: 13});
+    _txtPositionLong->fontSize = 1;
+    _txtPositionLong->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _txtPositionLong);
+
+    val.b[0] = EEPROM.read(CENTER_ADDR);
+    val.b[1] = EEPROM.read(CENTER_ADDR+1);
+    val.b[2] = EEPROM.read(CENTER_ADDR+2);
+    val.b[3] = EEPROM.read(CENTER_ADDR+3);
+    _centerLat = val.l;
+    val.b[0] = EEPROM.read(CENTER_ADDR+4);
+    val.b[1] = EEPROM.read(CENTER_ADDR+5);
+    val.b[2] = EEPROM.read(CENTER_ADDR+6);
+    val.b[3] = EEPROM.read(CENTER_ADDR+7);
+    _centerLong = val.l;
 }

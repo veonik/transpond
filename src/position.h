@@ -25,6 +25,9 @@ private:
     Label *_lblZ2Value;
     Textbox *_txtZ2Value;
 
+    Textbox *_txtPositionLat;
+    Textbox *_txtPositionLong;
+
     Adafruit_10DOF _dof;
     sensors_event_t _accel_event;
     sensors_event_t _mag_event;
@@ -71,6 +74,8 @@ public:
         delete _txtY2Value;
         delete _lblZ2Value;
         delete _txtZ2Value;
+        delete _txtPositionLat;
+        delete _txtPositionLong;
     }
 };
 

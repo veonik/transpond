@@ -186,8 +186,8 @@ void Textbox::setValue(long val) {
     ltoa(val, _value, 10);
 }
 
-void Textbox::setValue(double val) {
-    String str = String(val);
+void Textbox::setValue(double val, int precision) {
+    String str = String(val, precision);
     strcpy(_value, str.c_str());
 }
 

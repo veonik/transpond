@@ -31,7 +31,7 @@ void ProgramsViewController::init() {
     _btnGraphicsTest->setLabel("Graphics Test");
     _btnGraphicsTest->fontSize = 2;
     _btnGraphicsTest->then([](void *context) {
-        pipe->segueTo(new GraphicsTestViewController());
+        pipe->seguePopover(new GraphicsTestViewController());
     }, NULL);
     pipe->push(drawControlForwarder, _btnGraphicsTest);
 
