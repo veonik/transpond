@@ -219,25 +219,41 @@ void update() {
     if (gps.date.isUpdated() && gps.date.isValid()) {
         m.date = gps.date.value();
     }
-    if (gps.altitude.isUpdated() && gps.altitude.isValid()) {
-        m.altitudeGps  = (float) gps.altitude.meters();
+    float alt;
+    if (gps.altitude.isUpdated() && gps.altitude.isValid()
+            // TODO: Sometimes the reading is still garbage, even if isValid()
+            // TODO: This assumes altitude is higher than 10 meters.
+            && (alt = (float) gps.altitude.meters()) > 10.0
+    ) {
+        m.altitudeGps  = alt;
     }
-    if (gps.location.isUpdated() && gps.location.isValid()) {
-        m.latitude  = (float) gps.location.lat();
-        m.longitude = (float) gps.location.lng();
+    float lat, lng;
+    if (gps.location.isUpdated() && gps.location.isValid()
+            // TODO: Sometimes the reading is still garbage, even if isValid()
+            && abs(lat = (float) gps.location.lat()) > 1.0
+            && abs(lng = (float) gps.location.lng()) > 1.0
+    ) {
+        if (lng > 0) {
+            // TODO: Sometimes the reading is signed oppositely, even if isValid()
+            // TODO: This assumes I'm in the northern hemisphere.
+            lng *= -1;
+        }
+        if (lat < 0) {
+            // TODO: Sometimes the reading is signed oppositely, even if isValid()
+            // TODO: This assumes I'm in the western hemisphere.
+            lat *= -1;
+        }
+        m.latitude  = lat;
+        m.longitude = lng;
 
 #ifndef DEBUGV
         if (printGpsI < printGps) {
             printGpsI++;
 #endif
             Serial.print(F("Location: "));
-            if (gps.location.isValid()) {
-                Serial.print(m.latitude, 6);
-                Serial.print(F(","));
-                Serial.print(m.longitude, 6);
-            } else {
-                Serial.print(F("INVALID"));
-            }
+            Serial.print(m.latitude, 6);
+            Serial.print(F(","));
+            Serial.print(m.longitude, 6);
 
             Serial.println();
 #ifndef DEBUGV

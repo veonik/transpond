@@ -59,8 +59,7 @@ public:
 
 class Pipeline {
 private:
-    static const byte SIZE = 64;
-    static const byte HISTORY = 2;
+    static const byte SIZE = 128;
 
     tickCallback _callbacks[SIZE];
     void *_contexts[SIZE];
@@ -165,7 +164,6 @@ class Textbox : public Clickable {
 private:
     char _valueSuffixText[8];
 
-    int _lastValDrawn;
     int _lastValLength = 0;
     char _lastVal[16];
 
@@ -186,6 +184,8 @@ public:
     void setValue(const char *val);
     void setValue(long val);
     void setValue(double val, int precision = 2);
+
+    void invalidate();
 
     const char *getValue();
 

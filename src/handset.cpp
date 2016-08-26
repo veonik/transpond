@@ -428,6 +428,9 @@ void loop() {
             Serial.print(F("Average send delay: "));
             Serial.print(avgSendDelay);
             Serial.println(F("ms"));
+            Serial.print(F("RAM free: "));
+            Serial.print(freeRam());
+            Serial.println(F(" bytes"));
             printTicks = (int) cmd.substring(1).toInt();
             printTicksI = 0;
         } else if (cmd[0] == 'G') {

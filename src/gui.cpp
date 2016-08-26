@@ -143,7 +143,7 @@ void Label::draw() {
         uint16_t w, h;
         int16_t x1, y1;
         tft.getTextBounds(_label, 10, 10, &x1, &y1, &w, &h);
-        int x = (int) ox + (_size.w / 2) - ((int) w / 2);
+        int x = (int) ox + (_size.w / 2) - ((int) w / 2) - 1;
         int y = (int) oy + (_size.h / 2) - ((int) h / 2);
         tft.setCursor(x, y + offset);
         tft.print(_label);
@@ -220,23 +220,19 @@ void Textbox::draw() {
         tft.setCursor(_pos.x, _pos.y +_size.h-2);
         tft.setTextColor(bgColor);
         tft.print(_lastVal);
-
-//        if (valLength != _lastValLength && _valueSuffixText[0] != 0) {
-//            tft.setFont(&Inconsolata_g5pt7b);
-//            tft.print(_valueSuffixText);
-//        }
     }
 
     tft.setCursor(_pos.x, _pos.y +_size.h-2);
-    tft.setTextColor(ILI9341_WHITE);
+    tft.setTextColor(fontColor);
     tft.print(valStr);
     tft.setFont(&Inconsolata_g5pt7b);
-//    if (valLength != _lastValLength) {
-//        tft.setFont(&Inconsolata_g5pt7b);
-//        tft.print(_valueSuffixText);
-//    }
     strcpy(_lastVal, valStr);
     _lastValLength = valLength;
+}
+
+void Textbox::invalidate() {
+    memset(_lastVal, 0, sizeof(_lastVal));
+    _lastValLength = 0;
 }
 
 void drawControlForwarder(void *context) {

@@ -7,10 +7,11 @@
 
 class PositionViewController : public ViewController {
 private:
-    const unsigned long UPDATE_WAIT = 250;
+    const unsigned long UPDATE_WAIT = 500;
 
     Button *_btnExit;
     Button *_btnCenter;
+
     Label *_lblXValue;
     Textbox *_txtXValue;
     Label *_lblYValue;
@@ -27,16 +28,32 @@ private:
 
     Textbox *_txtPositionLat;
     Textbox *_txtPositionLong;
+    Textbox *_txtPositionAlt;
+    Textbox *_txtPositionAltMax;
+    Textbox *_txtPositionDistance;
+
+    Textbox *_txtZoomLevel;
+    Button *_btnZoomIn;
+    Button *_btnZoomOut;
 
     Adafruit_10DOF _dof;
     sensors_event_t _accel_event;
     sensors_event_t _mag_event;
     sensors_vec_t _orientation;
 
-    long _centerLat;
-    long _centerLong;
+    float _centerLat;
+    float _centerLong;
+
+    // Default these to something ridiculous to ensure it draws the first time.
+    int _lastPosX = -5000;
+    int _lastPosY = -5000;
+
+    float _altMax = 0.0;
+    long _zoom = 10000L;
 
     unsigned long _lastUpdate = 0;
+
+    void _deferDrawPositionStats();
 
 public:
     PositionViewController() : ViewController() {
@@ -57,6 +74,13 @@ public:
 
     void center();
 
+    void zoomIn();
+    void zoomOut();
+
+    void resetAltMax() {
+        _altMax = 0.0;
+    }
+
     void init();
 
     void deinit() {
@@ -76,6 +100,12 @@ public:
         delete _txtZ2Value;
         delete _txtPositionLat;
         delete _txtPositionLong;
+        delete _txtPositionAlt;
+        delete _txtPositionAltMax;
+        delete _txtPositionDistance;
+        delete _btnZoomIn;
+        delete _btnZoomOut;
+        delete _txtZoomLevel;
     }
 };
 
