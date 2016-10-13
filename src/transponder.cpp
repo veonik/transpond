@@ -2,6 +2,12 @@
 
 #include <Arduino.h>
 
+// TODO: improved i2c library for Teensy
+//#ifdef __MK64FX512__
+//#include <i2c_t3.h>
+//#define Wire TwoWire
+//#endif
+
 #include <CC1101Radio.h>
 
 #include <Adafruit_Sensor.h>
@@ -10,7 +16,10 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_BNO055.h>
 
+#ifndef __MK64FX512__
 #include <gSoftSerial.h>
+#endif
+
 #include <TinyGPS++.h>
 
 #include "util.h"
@@ -26,7 +35,11 @@ Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
 Adafruit_L3GD20_Unified       gyro  = Adafruit_L3GD20_Unified(20);
 Adafruit_BNO055               bno   = Adafruit_BNO055(55);
 
+#ifndef __MK64FX512__
 gSoftSerial gpsSerial = gSoftSerial(5, 4);
+#else
+HardwareSerial gpsSerial = Serial1;
+#endif
 TinyGPSPlus gps;
 
 FRAM fram = FRAM();
@@ -36,6 +49,7 @@ bool magEnabled = true;
 bool bmpEnabled = true;
 bool gyroEnabled = true;
 bool bnoEnabled = true;
+bool framStarted = false;
 bool framEnabled = true;
 
 uint8_t piezoSensor = A0;
@@ -82,7 +96,7 @@ void initSensors() {
         Serial.println(F("FRAM not found"));
         framEnabled = false;
     } else {
-        fram.format();
+        framStarted = true;
     }
 
     gpsSerial.begin(9600);
@@ -273,6 +287,7 @@ void log() {
 }
 
 void setup() {
+    delay(10000);
     Serial.begin(38400);
     Serial.println(F("transponder"));
     radio = new CC1101Radio();
@@ -339,6 +354,19 @@ void loop() {
                 Serial.print(F(", "));
                 Serial.println(fram.readFloat(pos+8), 6);
             }
+        } else if (cmd == 'S') {
+            if (!framEnabled) {
+                if (framStarted) {
+                    framEnabled = true;
+                    Serial.println(F("FRAM logging enabled."));
+                } else {
+                    Serial.println(F("FRAM not started; unable to enable logging."));
+                }
+            } else {
+                framEnabled = false;
+                Serial.println(F("FRAM logging disabled."));
+            }
+            framEnabled = false;
         }
     }
 }

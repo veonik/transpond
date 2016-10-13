@@ -1,6 +1,16 @@
 #ifndef TRANSPOND_UTIL_H
 #define TRANSPOND_UTIL_H
 
+#ifdef __MK64FX512__
+int readVcc() {
+    return 0;
+}
+
+int freeRam() {
+    return 0;
+}
+#else
+
 // From: http://provideyourown.com/2012/secret-arduino-voltmeter-measure-battery-voltage/
 int readVcc() {
     // Read 1.1V reference against AVcc
@@ -34,5 +44,6 @@ int freeRam() {
     int v;
     return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
+#endif
 
 #endif

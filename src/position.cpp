@@ -31,6 +31,47 @@ float haversine(float lat1, float lng1, float lat2, float lng2) {
     return d;
 }
 
+float azimuth(float lat1, float lng1, float lat2, float lng2) {
+    float radLat1 = radians(lat1);
+    float radLat2 = radians(lat2);
+    float radLng1 = radians(lng1);
+    float radLng2 = radians(lng2);
+
+    float y = sin(radLng2-radLng1) * cos(radLat2);
+    float x = cos(radLat1)*sin(radLat2) -
+            sin(radLat1)*cos(radLat2)*cos(radLng2-radLng1);
+    float brng = atan2(y, x);
+
+    return fmod(degrees(brng) + 360.0, 360.0);
+}
+
+void bearing(float bearing, char *buf) {
+    if (isnan(bearing)) {
+        *buf++ = '?';
+    } else if (bearing <= 90) {
+        *buf++ = 'N';
+        if (bearing >= 45) {
+            *buf++ = 'E';
+        }
+    } else if (bearing <= 180) {
+        if (bearing >= 135) {
+            *buf++ = 'S';
+        }
+        *buf++ = 'E';
+    } else if (bearing <= 270) {
+        *buf++ = 'S';
+        if (bearing >= 225) {
+            *buf++ = 'W';
+        }
+    } else {
+        if (bearing > 315) {
+            *buf++ = 'N';
+        }
+        *buf++ = 'W';
+    }
+    *buf = 0;
+}
+
 void PositionViewController::tick() {
     _btnCenter->tick();
     _btnExit->tick();
@@ -42,6 +83,13 @@ void PositionViewController::tick() {
     if (update >= _lastUpdate + UPDATE_WAIT) {
         _lastUpdate = update;
         pipe->push(drawViewControllerForwarder, this);
+
+        _txtPositionDistance->setValue(haversine(_centerLat, _centerLong, m.latitude, m.longitude), 2);
+        pipe->push(drawControlForwarder, _txtPositionDistance);
+        char azi[3];
+        bearing(azimuth(_centerLat, _centerLong, m.latitude, m.longitude), azi);
+        _txtPositionBearing->setValue(azi);
+        pipe->push(drawControlForwarder, _txtPositionBearing);
 
         _txtPositionLat->setValue(m.latitude, 6);
         _txtPositionLong->setValue(m.longitude, 5);
@@ -193,9 +241,6 @@ void PositionViewController::drawPRH2() {
 }
 
 void PositionViewController::drawPos() {
-    _txtPositionDistance->setValue(haversine(_centerLat, _centerLong, m.latitude, m.longitude), 2);
-    pipe->push(drawControlForwarder, _txtPositionDistance);
-    
     float latToMeters = 111046.5974459675f;
     float longToMeters = 84612.89229305493f;
     float fixedLat = m.latitude - _centerLat;
@@ -405,8 +450,12 @@ void PositionViewController::init() {
     _txtPositionDistance = new Textbox(Point{x: 90, y: 140}, Size{w: 80, h: 13});
     _txtPositionDistance->fontSize = 1;
     _txtPositionDistance->fontColor = ILI9341_WHITE;
-    _txtPositionDistance->setValueSuffix("m");
     pipe->push(drawControlForwarder, _txtPositionDistance);
+
+    _txtPositionBearing = new Textbox(Point{x: 50, y: 140}, Size{w: 30, h: 13});
+    _txtPositionBearing->fontSize = 1;
+    _txtPositionBearing->fontColor = ILI9341_WHITE;
+    pipe->push(drawControlForwarder, _txtPositionBearing);
 
     val.b[0] = EEPROM.read(CENTER_ADDR);
     val.b[1] = EEPROM.read(CENTER_ADDR+1);
@@ -426,6 +475,7 @@ void PositionViewController::_deferDrawPositionStats() {
     _txtPositionAlt->invalidate();
     _txtPositionAltMax->invalidate();
     _txtPositionDistance->invalidate();
+    _txtPositionBearing->invalidate();
     pipe->push(drawControlForwarder, _btnCenter);
     pipe->push(drawControlForwarder, _btnExit);
     pipe->push(drawControlForwarder, _btnZoomIn);
@@ -436,4 +486,5 @@ void PositionViewController::_deferDrawPositionStats() {
     pipe->push(drawControlForwarder, _txtPositionAlt);
     pipe->push(drawControlForwarder, _txtPositionAltMax);
     pipe->push(drawControlForwarder, _txtPositionDistance);
+    pipe->push(drawControlForwarder, _txtPositionBearing);
 }

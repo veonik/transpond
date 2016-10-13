@@ -31,6 +31,7 @@ private:
     Textbox *_txtPositionAlt;
     Textbox *_txtPositionAltMax;
     Textbox *_txtPositionDistance;
+    Textbox *_txtPositionBearing;
 
     Textbox *_txtZoomLevel;
     Button *_btnZoomIn;
@@ -103,6 +104,7 @@ public:
         delete _txtPositionAlt;
         delete _txtPositionAltMax;
         delete _txtPositionDistance;
+        delete _txtPositionBearing;
         delete _btnZoomIn;
         delete _btnZoomOut;
         delete _txtZoomLevel;

@@ -6,6 +6,7 @@
 #include <Adafruit_ILI9341.h>
 #include <SD.h>
 #include <SPI.h>
+#include <EEPROM.h>
 
 #include "gui.h"
 #include "util.h"
@@ -16,6 +17,8 @@
 #define TFT_DC 6
 #define TFT_CS 5
 #define SD_CS 4
+
+const unsigned int CURRENT_FILE_ADDR = 0x88;
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
@@ -53,35 +56,11 @@ const long MAX_SEND_WAIT = 1000; // in ms
 const long TIMEOUT_WAIT = 1000;  // in ms
 const long UPDATE_WAIT = 500;    // in ms
 
-const char *LOG_FILE = "DATA.TXT";
+int logFileRotation;
+unsigned long logFileSize = 0;            // in bytes
+unsigned long logFileMax = 1024L * 1024L; // in bytes
+char logFilename[10] = "D0.LOG";
 
-void onMessageReceived(Message *msg) {
-    unsigned long ack = millis();
-
-    const char *body = msg->getBody();
-#ifdef DEBUGV
-    Serial.print("received ");
-    Serial.print(msg->size);
-    Serial.println(" bytes");
-#endif
-    // expects "ack<data>"
-    if (body[0] != 'a' || body[1] != 'c') {
-        Serial.println("received non-ack or malformed");
-        return;
-    }
-    if (body[2] == 'k') {
-        ackCommand.unpack((char *)body);
-    } else if (body[2] == '2') {
-        ac2Command.unpack((char *)body);
-    }
-
-    lastAck = ack;
-    lastRssi = msg->rssi;
-    lastRoundtrip = (int) (lastAck-lastSent);
-
-}
-
-#ifdef DEBUG
 void printCardInfo() {
     Serial.print(F("Data logging is "));
     if (disableLogging) {
@@ -122,15 +101,44 @@ void printCardInfo() {
     root.ls(LS_R | LS_DATE | LS_SIZE);
     Serial.println();
 }
+
+void rotateLog() {
+    logFileRotation++;
+    char *p = logFilename;
+    *p++ = 'D';
+    itoa(logFileRotation, p, 10);
+    p++;
+    if (logFileRotation > 99) {
+        p++;
+        if (logFileRotation > 999) {
+            p++;
+        }
+    }
+    *p++ = '.';
+    *p++ = 'L';
+    *p++ = 'O';
+    *p++ = 'G';
+    *p = 0;
+#ifdef DEBUG
+    Serial.print("rotating to new log file: ");
+    Serial.println(logFilename);
 #endif
+}
 
-void setup() {
-    Serial.begin(38400);
-    Serial.println("handset");
+void openLog() {
+    int tries = 0;
+    while (tries++ < 3 && !dataFile.open(root, logFilename, O_CREAT | O_WRITE)) {
+        Serial.println(F("Unable to create log file, rotating..."));
+        rotateLog();
+    }
+    if (!dataFile.isOpen()) {
+        Serial.println(F("Unable to create log file, disabling data logger."));
+        disableLogging = true;
+        return;
+    }
+}
 
-    tft.begin();
-    tft.fillScreen(ILI9341_BLACK);
-
+void setupLog() {
     if (!card.init(SPI_HALF_SPEED, SD_CS)) {
         Serial.println(F("No SD card inserted, disabling data logger."));
         disableLogging = true;
@@ -151,15 +159,47 @@ void setup() {
 #endif
 
     if (!disableLogging) {
-        if (!dataFile.open(root, LOG_FILE, O_CREAT | O_WRITE)) {
-            dataFile.open(root, LOG_FILE, O_TRUNC | O_WRITE);
-        }
-        if (!dataFile.truncate(0)) {
-            Serial.println(F("Unable to create or truncate log file, disabling data logger."));
-            disableLogging = true;
-        }
-        dataFile.sync();
+        openLog();
     }
+}
+
+void onMessageReceived(Message *msg) {
+    unsigned long ack = millis();
+
+    const char *body = msg->getBody();
+#ifdef DEBUGV
+    Serial.print("received ");
+    Serial.print(msg->size);
+    Serial.println(" bytes");
+#endif
+    // expects "ack<data>"
+    if (body[0] != 'a' || body[1] != 'c') {
+        Serial.print("received non-ack or malformed: ");
+        Serial.print(body[0]);
+        Serial.print(body[1]);
+        Serial.println(body[2]);
+        return;
+    }
+    if (body[2] == 'k') {
+        ackCommand.unpack((char *)body);
+    } else if (body[2] == '2') {
+        ac2Command.unpack((char *)body);
+    }
+
+    lastAck = ack;
+    lastRssi = msg->rssi;
+    lastRoundtrip = (int) (lastAck-lastSent);
+
+}
+
+void setup() {
+    Serial.begin(38400);
+    Serial.println("handset");
+
+    tft.begin();
+    tft.fillScreen(ILI9341_BLACK);
+
+    setupLog();
 
     radio = new CC1101Radio();
     radio->listen(onMessageReceived);
@@ -175,7 +215,7 @@ void writeLog() {
     }
 
     if (!dataFile.isOpen()) {
-        if (!dataFile.open(root, LOG_FILE, O_WRITE | O_APPEND)) {
+        if (!dataFile.open(root, logFilename, O_WRITE | O_APPEND)) {
 #ifdef DEBUG
             Serial.println(F("Could not open file for writing"));
 #endif
@@ -184,131 +224,136 @@ void writeLog() {
     }
 
     // Local sensor readings
-    dataFile.print(lastUpdate);
-    dataFile.print(F("\t"));
-    dataFile.print(sinceLastAck);
-    dataFile.print(F("\t"));
-    dataFile.print(lastVcc);
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(lastUpdate);
+    logFileSize += dataFile.print(F("\t"));
+    logFileSize += dataFile.print(sinceLastAck);
+    logFileSize += dataFile.print(F("\t"));
+    logFileSize += dataFile.print(lastVcc);
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingi(lastRoundtrip)) {
-        dataFile.print(lastRoundtrip);
+        logFileSize += dataFile.print(lastRoundtrip);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingi(lastRssi)) {
-        dataFile.print(lastRssi);
+        logFileSize += dataFile.print(lastRssi);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
 
     // Remote sensor readings
     if (validReadingi(m.vcc)) {
-        dataFile.print(m.vcc);
+        logFileSize += dataFile.print(m.vcc);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingi(m.rssi)) {
-        dataFile.print(m.rssi);
+        logFileSize += dataFile.print(m.rssi);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingi(m.vibration)) {
-        dataFile.print(m.vibration);
+        logFileSize += dataFile.print(m.vibration);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.altitudeGps)) {
-        dataFile.print(m.altitudeGps);
+        logFileSize += dataFile.print(m.altitudeGps);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.altitude)) {
-        dataFile.print(m.altitude);
+        logFileSize += dataFile.print(m.altitude);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.temp)) {
-        dataFile.print(m.temp);
+        logFileSize += dataFile.print(m.temp);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.temp2)) {
-        dataFile.print(m.temp2);
+        logFileSize += dataFile.print(m.temp2);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.latitude)) {
-        dataFile.print(m.latitude, 6);
+        logFileSize += dataFile.print(m.latitude, 6);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.longitude)) {
-        dataFile.print(m.longitude, 6);
+        logFileSize += dataFile.print(m.longitude, 6);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.accelX)) {
-        dataFile.print(m.accelX);
+        logFileSize += dataFile.print(m.accelX);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.accelY)) {
-        dataFile.print(m.accelY);
+        logFileSize += dataFile.print(m.accelY);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.accelZ)) {
-        dataFile.print(m.accelZ);
+        logFileSize += dataFile.print(m.accelZ);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.magX)) {
-        dataFile.print(m.magX);
+        logFileSize += dataFile.print(m.magX);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.magY)) {
-        dataFile.print(m.magY);
+        logFileSize += dataFile.print(m.magY);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.magZ)) {
-        dataFile.print(m.magZ);
+        logFileSize += dataFile.print(m.magZ);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.gyroX)) {
-        dataFile.print(m.gyroX);
+        logFileSize += dataFile.print(m.gyroX);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.gyroY)) {
-        dataFile.print(m.gyroY);
+        logFileSize += dataFile.print(m.gyroY);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.gyroZ)) {
-        dataFile.print(m.gyroZ);
+        logFileSize += dataFile.print(m.gyroZ);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.accel2X)) {
-        dataFile.print(m.accel2X);
+        logFileSize += dataFile.print(m.accel2X);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.accel2Y)) {
-        dataFile.print(m.accel2Y);
+        logFileSize += dataFile.print(m.accel2Y);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.accel2Z)) {
-        dataFile.print(m.accel2Z);
+        logFileSize += dataFile.print(m.accel2Z);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.mag2X)) {
-        dataFile.print(m.mag2X);
+        logFileSize += dataFile.print(m.mag2X);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.mag2Y)) {
-        dataFile.print(m.mag2Y);
+        logFileSize += dataFile.print(m.mag2Y);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.mag2Z)) {
-        dataFile.print(m.mag2Z);
+        logFileSize += dataFile.print(m.mag2Z);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.gyro2X)) {
-        dataFile.print(m.gyro2X);
+        logFileSize += dataFile.print(m.gyro2X);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.gyro2Y)) {
-        dataFile.print(m.gyro2Y);
+        logFileSize += dataFile.print(m.gyro2Y);
     }
-    dataFile.print(F("\t"));
+    logFileSize += dataFile.print(F("\t"));
     if (validReadingf(m.gyro2Z)) {
-        dataFile.print(m.gyro2Z);
+        logFileSize += dataFile.print(m.gyro2Z);
     }
-    dataFile.println(F("\t"));
+    logFileSize += dataFile.println(F("\t"));
     dataFile.sync();
+    if (logFileSize >= logFileMax) {
+        dataFile.close();
+        rotateLog();
+        openLog();
+    }
 }
 
 int printTicks;
@@ -326,9 +371,8 @@ void loop() {
         Serial.println("ms");
     }
 
-    // Tick.
+    // Radio tick.
     radio->tick();
-    pipe->tick();
 
     // Send helo.
     diff = tick - lastSent;
@@ -357,7 +401,7 @@ void loop() {
     }
 
     // Update metrics.
-    // TODO: This should probably happen after radio->tick but before pipe->tick.
+    tick = millis();
     if (tick - lastUpdate > UPDATE_WAIT) {
         lastUpdate = tick;
         lastVcc = readVcc();
@@ -378,7 +422,6 @@ void loop() {
         }
 
         if (lastAck + TIMEOUT_WAIT < lastSent) {
-            m.setNoReading();
             lastRoundtrip = NO_READING_INT;
             lastRssi = NO_READING_INT;
         }
@@ -386,12 +429,15 @@ void loop() {
         writeLog();
     }
 
+    // Pipeline tick.
+    pipe->tick();
+
     // Serial commands.
     if (Serial.available()) {
         String cmd = Serial.readStringUntil('\n');
         if (cmd[0] == 'D') {
             dataFile.close();
-            if (!dataFile.open(root, LOG_FILE, O_READ)) {
+            if (!dataFile.open(root, logFilename, O_READ)) {
                 Serial.println();
                 Serial.println("Could not open file for reading");
                 return;
@@ -420,6 +466,9 @@ void loop() {
             } while (read > 0);
             Serial.println();
             dataFile.close();
+
+        } else if (cmd[0] == 'L') {
+            printCardInfo();
 
         } else if (cmd[0] == 'I') {
             Serial.print(F("Average tick delay: "));
