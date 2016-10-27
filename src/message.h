@@ -124,32 +124,20 @@ struct metrics {
     }
 };
 
-class AckCommand : public Command {
-private:
-    metrics *m;
+size_t ackPack(char *buf);
+size_t ackUnpack(char *buf);
 
-public:
-    AckCommand(metrics *m) : Command() {
-        this->m = m;
-    }
+size_t ac2Pack(char *buf);
+size_t ac2Unpack(char *buf);
 
-    size_t pack(char *buf);
+typedef size_t (*packFn)(char*);
 
-    size_t unpack(char *buf);
+struct command {
+    char prefix[4];
+    packFn pack;
+    packFn unpack;
 };
 
-class Ack2Command : public Command {
-private:
-    metrics *m;
-
-public:
-    Ack2Command(metrics *m) : Command() {
-        this->m = m;
-    }
-
-    size_t pack(char *buf);
-
-    size_t unpack(char *buf);
-};
+command *getCommand(const char *prefix);
 
 #endif

@@ -108,9 +108,6 @@ void initSensors() {
 int printGps;
 int printGpsI;
 
-AckCommand ackCommand = AckCommand(&m);
-Ack2Command ac2Command = Ack2Command(&m);
-
 void onMessageReceived(Message *msg) {
     lastReceipt = micros();
     m.rssi = msg->rssi;
@@ -119,9 +116,9 @@ void onMessageReceived(Message *msg) {
     char cmd[5];
     strncpy(cmd, msg->getBody(), 4);
     if (strncmp(cmd, "helo", 4) == 0) {
-        s = ackCommand.pack(ack);
+        s = getCommand("ack")->pack(ack);
     } else if (strncmp(cmd, "infx", 4) == 0) {
-        s = ac2Command.pack(ack);
+        s = getCommand("ac2")->pack(ack);
     } else {
         Serial.print(F("unknown command received: "));
         Serial.println(msg->getBody());

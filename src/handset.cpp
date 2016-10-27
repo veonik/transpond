@@ -32,8 +32,6 @@ SdFile root;
 SdFile dataFile;
 
 metrics m;
-AckCommand ackCommand = AckCommand(&m);
-Ack2Command ac2Command = Ack2Command(&m);
 
 unsigned long lastTick;
 unsigned long lastUpdate;
@@ -172,24 +170,20 @@ void onMessageReceived(Message *msg) {
     Serial.print(msg->size);
     Serial.println(" bytes");
 #endif
-    // expects "ack<data>"
-    if (body[0] != 'a' || body[1] != 'c') {
+    // expects "pre<data>"
+    command *cmd = getCommand(body);
+    if (cmd == NULL) {
         Serial.print("received non-ack or malformed: ");
         Serial.print(body[0]);
         Serial.print(body[1]);
         Serial.println(body[2]);
         return;
     }
-    if (body[2] == 'k') {
-        ackCommand.unpack((char *)body);
-    } else if (body[2] == '2') {
-        ac2Command.unpack((char *)body);
-    }
+    cmd->unpack((char *)body);
 
     lastAck = ack;
     lastRssi = msg->rssi;
     lastRoundtrip = (int) (lastAck-lastSent);
-
 }
 
 void setup() {
