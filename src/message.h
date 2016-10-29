@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <limits.h>
-#include "command.h"
 
 const int NO_READING_INT = INT_MAX;
 const float NO_READING_FLOAT = NAN;
@@ -15,6 +14,8 @@ const unsigned long NO_READING_ULONG = ULONG_MAX;
 #define invalidReadingi(i) i == NO_READING_INT
 
 struct metrics {
+    char logging = 'o';
+
     // no unit; raw sensor data
     int vibration;
 
@@ -124,20 +125,9 @@ struct metrics {
     }
 };
 
-size_t ackPack(char *buf);
-size_t ackUnpack(char *buf);
+typedef size_t (*packFn)(metrics*, char*);
 
-size_t ac2Pack(char *buf);
-size_t ac2Unpack(char *buf);
+packFn getCommand(const char *prefix);
 
-typedef size_t (*packFn)(char*);
-
-struct command {
-    char prefix[4];
-    packFn pack;
-    packFn unpack;
-};
-
-command *getCommand(const char *prefix);
 
 #endif

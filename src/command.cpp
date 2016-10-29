@@ -4,6 +4,7 @@ union {
     int i;
     float f;
     long l;
+    unsigned long ul;
     char b[4];
 } val;
 
@@ -37,6 +38,15 @@ char *packLong(char *buf, long l) {
     return buf;
 }
 
+char *packULong(char *buf, unsigned long ul) {
+    val.ul = ul;
+    *buf++ = val.b[0];
+    *buf++ = val.b[1];
+    *buf++ = val.b[2];
+    *buf++ = val.b[3];
+    return buf;
+}
+
 char *unpackChar(char *b, char *buf) {
     *b = *buf++;
     return buf;
@@ -58,12 +68,20 @@ char *unpackFloat(float *f, char *buf) {
     return buf;
 }
 
-
 char *unpackLong(long *l, char *buf) {
     val.b[0] = *buf++;
     val.b[1] = *buf++;
     val.b[2] = *buf++;
     val.b[3] = *buf++;
     *l = val.l;
+    return buf;
+}
+
+char *unpackULong(unsigned long *ul, char *buf) {
+    val.b[0] = *buf++;
+    val.b[1] = *buf++;
+    val.b[2] = *buf++;
+    val.b[3] = *buf++;
+    *ul = val.ul;
     return buf;
 }

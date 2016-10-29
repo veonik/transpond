@@ -1,12 +1,12 @@
 #include "settings.h"
-#include "vibration_offset.h"
+#include "log_config.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
 
 void SettingsViewController::tick() {
     _btnExit->tick();
-    _btnConfigVib->tick();
+    _btnLogConfig->tick();
 }
 
 void SettingsViewController::draw() {
@@ -23,13 +23,13 @@ void SettingsViewController::init() {
     }, NULL);
     pipe->push(drawControlForwarder, _btnExit);
 
-    _btnConfigVib = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
-    _btnConfigVib->setLabel("Config Vib");
-    _btnConfigVib->fontSize = 2;
-    _btnConfigVib->then([](void *context) {
-        pipe->seguePopover(new VibrationConfigViewController());
+    _btnLogConfig = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
+    _btnLogConfig->setLabel("Config Logging");
+    _btnLogConfig->fontSize = 2;
+    _btnLogConfig->then([](void *context) {
+        pipe->seguePopover(new LogSettingsViewController());
     }, NULL);
-    pipe->push(drawControlForwarder, _btnConfigVib);
+    pipe->push(drawControlForwarder, _btnLogConfig);
 
 
 }

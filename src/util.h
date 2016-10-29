@@ -46,4 +46,13 @@ int freeRam() {
 }
 #endif
 
+#define EXPAVG_POWER 256
+#define EXPAVG_ALPHA 36
+#define EXPAVG_DIFF  220
+
+// From: http://playground.arduino.cc/Main/RunningAverage
+long expAvg(long value, long reading) {
+    return (EXPAVG_ALPHA * reading + EXPAVG_DIFF * value) / EXPAVG_POWER;
+}
+
 #endif

@@ -43,8 +43,6 @@ int lastVcc;         // mV
 int sinceLastAck;    // sec
 long avgTickDelay;   // ms
 long avgSendDelay;   // ms
-long ticks;
-long sends;
 
 bool disableLogging = false;
 bool sendInfx = false;
@@ -171,7 +169,7 @@ void onMessageReceived(Message *msg) {
     Serial.println(" bytes");
 #endif
     // expects "pre<data>"
-    command *cmd = getCommand(body);
+    packFn cmd = getCommand(body);
     if (cmd == NULL) {
         Serial.print("received non-ack or malformed: ");
         Serial.print(body[0]);
@@ -179,7 +177,7 @@ void onMessageReceived(Message *msg) {
         Serial.println(body[2]);
         return;
     }
-    cmd->unpack((char *)body);
+    cmd(&m, (char *)body);
 
     lastAck = ack;
     lastRssi = msg->rssi;
@@ -356,8 +354,7 @@ int printTicksI;
 void loop() {
     unsigned long tick = millis();
     long diff = tick - lastTick;
-    ticks++;
-    avgTickDelay = avgTickDelay + ((diff - avgTickDelay) / ticks);
+    avgTickDelay = expAvg(avgTickDelay, diff);
     lastTick = tick;
     if (printTicks > printTicksI) {
         Serial.print("tick delay: ");
@@ -373,8 +370,7 @@ void loop() {
     if ((lastAck < lastSent && diff > MAX_SEND_WAIT)
         || diff > MIN_SEND_WAIT
     ) {
-        sends++;
-        avgSendDelay = avgSendDelay + ((diff - avgSendDelay) / sends);
+        avgSendDelay = expAvg(avgSendDelay, diff);
         lastSent = tick;
         if (printTicks > printTicksI) {
             printTicksI++;
@@ -400,7 +396,7 @@ void loop() {
         lastUpdate = tick;
         lastVcc = readVcc();
 
-        sinceLastAck = (int) floor((lastUpdate - lastAck) / 1000.0);
+        sinceLastAck = (int) ((lastUpdate - lastAck) / 1000L);
         if (sinceLastAck < 0) {
 #ifdef DEBUG
             Serial.println("sinceLastAck less than 0");
@@ -481,6 +477,20 @@ void loop() {
             Serial.print(m.latitude, 6);
             Serial.print(F(","));
             Serial.println(m.longitude, 6);
+        } else if (cmd[0] == 'U') {
+            Message msg("dtup");
+            radio->send(&msg);
+        } else if (cmd[0] == 'F') {
+            if (m.logging != 'i') {
+                Serial.println(F("Requesting to enable logging"));
+            } else {
+                Serial.println(F("Requesting to disable logging"));
+            }
+            Message msg("tlog");
+            radio->send(&msg);
+        } else if (cmd[0] == 'T') {
+            Serial.print(F("Remote data logging is "));
+            Serial.println(m.logging == 'i' ? "enabled" : "disabled");
         }
     }
 }

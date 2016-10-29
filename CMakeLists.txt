@@ -59,5 +59,5 @@ add_executable(transpond
     src/programs.cpp
     src/settings.cpp
     src/transponder.cpp
-    src/vibration_offset.cpp
+        src/log_config.cpp
         src/command.cpp src/command.h src/command.cpp src/command.h)

@@ -25,20 +25,8 @@ uint16_t FRAM::_increment(int i) {
     return pos;
 }
 
-uint16_t FRAM::_boundsCheck(uint16_t pos, uint16_t size) {
-    if (pos >= FRAM_DATA_START && pos+size <= FRAM_DATA_END) {
-        return pos;
-    }
-    return FRAM_DATA_START;
-}
-
-void FRAM::_ensureFits(uint16_t pos, uint16_t size) {
-    if (pos >= FRAM_DATA_START && pos+size <= FRAM_DATA_END) {
-        return;
-    }
-    _pos = FRAM_DATA_START;
-    _fram.write8(FRAM_CURRENT_POSITION_LOW, lowByte(_pos));
-    _fram.write8(FRAM_CURRENT_POSITION_HIGH, highByte(_pos));
+bool FRAM::_ensureFits(uint16_t pos, uint16_t size) {
+    return pos >= FRAM_DATA_START && pos + size <= FRAM_DATA_END;
 }
 
 bool FRAM::format() {
@@ -48,22 +36,32 @@ bool FRAM::format() {
     return true;
 }
 
+uint16_t FRAM::pos() {
+    return _pos;
+}
+
 uint16_t FRAM::write(char c) {
-    _ensureFits(_pos, 1);
+    if (!_ensureFits(_pos, 1)) {
+        return 0;
+    }
     uint16_t pos = _pos;
     _fram.write8(_pos, c);
     return _increment(1);
 }
 
 uint16_t FRAM::write(int i) {
-    _ensureFits(_pos, 2);
+    if (!_ensureFits(_pos, 2)) {
+        return 0;
+    }
     _fram.write8(_pos, lowByte(i));
     _fram.write8(_pos+1, highByte(i));
     return _increment(2);
 }
 
 uint16_t FRAM::write(float f) {
-    _ensureFits(_pos, 4);
+    if (!_ensureFits(_pos, 4)) {
+        return 0;
+    }
     _buffer.f = f;
     _fram.write8(_pos,   _buffer.b[0]);
     _fram.write8(_pos+1, _buffer.b[1]);
@@ -73,7 +71,9 @@ uint16_t FRAM::write(float f) {
 }
 
 uint16_t FRAM::write(unsigned long ul) {
-    _ensureFits(_pos, 4);
+    if (!_ensureFits(_pos, 4)) {
+        return 0;
+    }
     _buffer.ul = ul;
     _fram.write8(_pos,   _buffer.b[0]);
     _fram.write8(_pos+1, _buffer.b[1]);
@@ -83,11 +83,11 @@ uint16_t FRAM::write(unsigned long ul) {
 }
 
 uint16_t FRAM::read(uint16_t start, char *buf, uint16_t size) {
-    if (_boundsCheck(start, size) != start) {
+    if (!_ensureFits(start, size)) {
         return 0;
     }
     for (uint16_t i = 0; i < size; i++) {
-        *buf++ = _fram.read8(start++);
+        *buf++ = (char) _fram.read8(start++);
     }
     return size;
 }

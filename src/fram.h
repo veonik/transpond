@@ -12,12 +12,11 @@
 
 class FRAM {
 private:
-    int _pos = 0;
+    uint16_t _pos = 0;
     Adafruit_FRAM_I2C _fram;
 
     uint16_t _increment(int);
-    uint16_t _boundsCheck(uint16_t pos, uint16_t size);
-    void _ensureFits(uint16_t pos, uint16_t size);
+    bool _ensureFits(uint16_t pos, uint16_t size);
 
     union {
         unsigned long ul;
@@ -42,6 +41,7 @@ public:
     uint16_t write(int);
     uint16_t write(float);
     uint16_t write(unsigned long);
+    uint16_t pos();
 
     uint16_t read(uint16_t start, char *buf, uint16_t size);
     int readInt(uint16_t pos);

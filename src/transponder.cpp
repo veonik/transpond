@@ -50,19 +50,21 @@ bool bmpEnabled = true;
 bool gyroEnabled = true;
 bool bnoEnabled = true;
 bool framStarted = false;
-bool framEnabled = true;
+bool radioEnabled = true;
 
 uint8_t piezoSensor = A0;
 
 unsigned long lastTick = 0;
 unsigned long lastUpdate = 0;
+unsigned long lastGpsUpdate = 0;
 unsigned long lastWrite = 0;
 unsigned long lastReceipt = 0;
-int avgTickDelay;
-int avgUpdateDelay;
+long avgTickDelay;
+long avgUpdateDelay;
 
-const long WRITE_WAIT = 500;    // in ms
-const long UPDATE_WAIT = 50;    // in ms
+const long WRITE_WAIT = 250;    // in ms
+const long UPDATE_WAIT = 64;    // in ms
+const long GPS_WAIT = 100;    // in ms
 
 metrics m;
 
@@ -94,7 +96,6 @@ void initSensors() {
     }
     if (!fram.begin()) {
         Serial.println(F("FRAM not found"));
-        framEnabled = false;
     } else {
         framStarted = true;
     }
@@ -113,17 +114,14 @@ void onMessageReceived(Message *msg) {
     m.rssi = msg->rssi;
     size_t s;
     char ack[61];
-    char cmd[5];
-    strncpy(cmd, msg->getBody(), 4);
-    if (strncmp(cmd, "helo", 4) == 0) {
-        s = getCommand("ack")->pack(ack);
-    } else if (strncmp(cmd, "infx", 4) == 0) {
-        s = getCommand("ac2")->pack(ack);
-    } else {
+    packFn cmd = getCommand(msg->getBody());
+    if (cmd == NULL) {
         Serial.print(F("unknown command received: "));
         Serial.println(msg->getBody());
         return;
     }
+
+    s = cmd(&m, ack);
 
 #ifdef DEBUGV
     Serial.print(F("sending "));
@@ -223,7 +221,9 @@ void update() {
         m.gyro2Z = (float) bno_gyro.z();
         m.temp2 = bno.getTemp();
     }
+}
 
+void updateGps() {
     if (gps.time.isUpdated() && gps.time.isValid()) {
         m.time = gps.time.value();
     }
@@ -232,18 +232,24 @@ void update() {
     }
     float alt;
     if (gps.altitude.isUpdated() && gps.altitude.isValid()
-            // TODO: Sometimes the reading is still garbage, even if isValid()
-            // TODO: This assumes altitude is higher than 10 meters.
-            && (alt = (float) gps.altitude.meters()) > 10.0
-    ) {
+        // TODO: Sometimes the reading is still garbage, even if isValid()
+        // TODO: This assumes altitude is higher than 10 meters.
+        && (alt = (float) gps.altitude.meters()) > 10.0
+            ) {
         m.altitudeGps  = alt;
+    }
+    if (gps.speed.isUpdated() && gps.speed.isValid()) {
+        m.speed = (float) gps.speed.mps();
+    }
+    if (gps.course.isUpdated() && gps.course.isValid()) {
+        m.course = (float) gps.course.deg();
     }
     float lat, lng;
     if (gps.location.isUpdated() && gps.location.isValid()
-            // TODO: Sometimes the reading is still garbage, even if isValid()
-            && abs(lat = (float) gps.location.lat()) > 1.0
-            && abs(lng = (float) gps.location.lng()) > 1.0
-    ) {
+        // TODO: Sometimes the reading is still garbage, even if isValid()
+        && abs(lat = (float) gps.location.lat()) > 1.0
+        && abs(lng = (float) gps.location.lng()) > 1.0
+            ) {
         if (lng > 0) {
             // TODO: Sometimes the reading is signed oppositely, even if isValid()
             // TODO: This assumes I'm in the northern hemisphere.
@@ -274,17 +280,20 @@ void update() {
 }
 
 void log() {
-    if (!framEnabled) {
+    if (m.logging != 'i') {
         return;
     }
 
-    fram.write(millis());
-    fram.write(m.latitude);
-    fram.write(m.longitude);
+    if (! (fram.write(millis()) && fram.write(m.latitude)
+          && fram.write(m.longitude) && fram.write(m.altitude)
+          && fram.write(m.altitudeGps) && fram.write(m.speed))
+    ) {
+        m.logging = 'o';
+        Serial.println(F("FRAM disabled, storage full."));
+    }
 }
 
 void setup() {
-    delay(10000);
     Serial.begin(38400);
     Serial.println(F("transponder"));
     radio = new CC1101Radio();
@@ -293,33 +302,30 @@ void setup() {
 }
 
 void loop() {
-    // TODO: alpha defines how much weight each value in the exponential average
-    // has, and therefore its impact in the average.
-    float alpha = 0.05;
     unsigned long tick = millis();
     long diff = tick - lastTick;
-    if (avgTickDelay > 0) {
-        avgTickDelay = (int) round((alpha * diff) + ((1 - alpha) * avgTickDelay));
-    } else {
-        avgTickDelay = (int) diff;
-    }
+    avgTickDelay = expAvg(avgTickDelay, diff);
     lastTick = tick;
-    while (gpsSerial.available()) {
-        gps.encode(gpsSerial.read());
-    }
 
     diff = tick - lastUpdate;
     if (diff >= UPDATE_WAIT) {
-        if (avgUpdateDelay > 0) {
-            avgUpdateDelay = (int) round((alpha * diff) + ((1 - alpha) * avgUpdateDelay));
-        } else {
-            avgUpdateDelay = (int) diff;
-        }
+        avgUpdateDelay = expAvg(avgUpdateDelay, diff);
         lastUpdate = tick;
         update();
     }
 
-    radio->tick();
+    diff = tick - lastGpsUpdate;
+    if (diff >= GPS_WAIT) {
+        lastGpsUpdate = tick;
+        while (gpsSerial.available()) {
+            gps.encode(gpsSerial.read());
+        }
+        updateGps();
+    }
+
+    if (radioEnabled) {
+        radio->tick();
+    }
 
     diff = tick - lastWrite;
     if (diff >= WRITE_WAIT) {
@@ -330,6 +336,10 @@ void loop() {
     if (Serial.available()) {
         char cmd = (char) Serial.read();
         if (cmd == 'I') {
+            Serial.print(F("Radio is "));
+            Serial.println(radioEnabled ? "enabled" : "disabled");
+            Serial.print(F("Logging is "));
+            Serial.println(m.logging == 'i' ? "enabled" : "disabled");
             Serial.print(F("Average tick delay: "));
             Serial.print(avgTickDelay);
             Serial.println(F("ms"));
@@ -343,27 +353,49 @@ void loop() {
             printGps = 5;
             printGpsI = 0;
         } else if (cmd == 'F') {
-            for (uint16_t pos = FRAM_DATA_START; pos < FRAM_DATA_START+60; pos += 12) {
-                Serial.print(F("Location at offset "));
+            for (uint16_t pos = FRAM_DATA_START; pos < fram.pos(); pos += 24) {
+                char tab = '\t';
                 Serial.print(fram.readULong(pos));
-                Serial.print(F(": "));
+                Serial.print(tab);
                 Serial.print(fram.readFloat(pos+4), 6);
-                Serial.print(F(", "));
-                Serial.println(fram.readFloat(pos+8), 6);
+                Serial.print(tab);
+                Serial.print(fram.readFloat(pos+8), 6);
+                Serial.print(tab);
+                Serial.print(fram.readFloat(pos+12), 6);
+                Serial.print(tab);
+                Serial.print(fram.readFloat(pos+16), 6);
+                Serial.print(tab);
+                Serial.println(fram.readFloat(pos+20), 6);
             }
         } else if (cmd == 'S') {
-            if (!framEnabled) {
+            if (m.logging != 'i') {
                 if (framStarted) {
-                    framEnabled = true;
+                    m.logging = 'i';
                     Serial.println(F("FRAM logging enabled."));
                 } else {
                     Serial.println(F("FRAM not started; unable to enable logging."));
                 }
             } else {
-                framEnabled = false;
+                m.logging = 'o';
                 Serial.println(F("FRAM logging disabled."));
             }
-            framEnabled = false;
+        } else if (cmd == 'D') {
+            if (framStarted) {
+                if (fram.format()) {
+                    Serial.println(F("FRAM formatted."));
+                } else {
+                    Serial.println(F("Unable to format FRAM."));
+                }
+            } else {
+                Serial.println(F("FRAM not started; unable to format."));
+            }
+        } else if (cmd == 'R') {
+            radioEnabled = !radioEnabled;
+            if (radioEnabled) {
+                Serial.println(F("Radio enabled."));
+            } else {
+                Serial.println(F("Radio disabled."));
+            }
         }
     }
 }
