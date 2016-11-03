@@ -7,6 +7,8 @@
 const int NO_READING_INT = INT_MAX;
 const float NO_READING_FLOAT = NAN;
 const unsigned long NO_READING_ULONG = ULONG_MAX;
+const char MODULE_ENABLED = 'i';
+const char MODULE_DISABLED = 'o';
 
 #define validReadingf(f) !isnan(f)
 #define validReadingi(i) i != NO_READING_INT
@@ -14,67 +16,85 @@ const unsigned long NO_READING_ULONG = ULONG_MAX;
 #define invalidReadingi(i) i == NO_READING_INT
 
 struct metrics {
-    char logging = 'o';
+    union {
+        struct {
+            // in dBm
+            int rssi;
 
-    // no unit; raw sensor data
-    int vibration;
+            // in mV
+            int vcc;
 
-    // in dBm
-    int rssi;
+            // in C
+            float temp2;
 
-    // in mV
-    int vcc;
+            // in meters
+            float altitudeGps;
 
-    // format: DDMMYY
-    unsigned long date;
+            // deg
+            float latitude;
+            float longitude;
 
-    // format: HHMMSSDD
-    unsigned long time;
+            // in m/s^2
+            float accelX;
+            float accelY;
+            float accelZ;
 
-    // in C
-    float temp;
-    float temp2;
+            // in micro Teslas (uT)
+            float magX;
+            float magY;
+            float magZ;
 
-    // in meters
-    float altitude;
-    float altitudeGps;
+            // in rad/s
+            float gyroX;
+            float gyroY;
+            float gyroZ;
 
-    // in m/s
-    float speed;
+            // --- 56 bytes
 
-    // deg
-    float course;
+            // in m/s
+            float speed;
 
-    // deg
-    float latitude;
-    float longitude;
+            // deg
+            float course;
 
-    // in m/s^2
-    float accelX;
-    float accelY;
-    float accelZ;
+            // in meters
+            float altitude;
 
-    float accel2X;
-    float accel2Y;
-    float accel2Z;
+            // in C
+            float temp;
 
-    // in micro Teslas (uT)
-    float magX;
-    float magY;
-    float magZ;
+            // in m/s^2
+            float accel2X;
+            float accel2Y;
+            float accel2Z;
 
-    float mag2X;
-    float mag2Y;
-    float mag2Z;
+            // in micro Teslas (uT)
+            float mag2X;
+            float mag2Y;
+            float mag2Z;
 
-    // in rad/s
-    float gyroX;
-    float gyroY;
-    float gyroZ;
+            // in rad/s
+            float gyro2X;
+            float gyro2Y;
+            float gyro2Z;
 
-    float gyro2X;
-    float gyro2Y;
-    float gyro2Z;
+            char logging = MODULE_DISABLED;
+            char unused;
+
+            // no unit; raw sensor data
+            int vibration;
+
+            // -- 56 bytes
+
+            // format: DDMMYY
+            unsigned long date;
+
+            // format: HHMMSSDD
+            unsigned long time;
+
+        };
+        char b[120];
+    };
 
     void setNoReading() {
         vibration   =

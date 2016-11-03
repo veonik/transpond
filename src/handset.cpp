@@ -32,6 +32,9 @@ SdFile root;
 SdFile dataFile;
 
 metrics m;
+//metrics mMin; // TODO: collect these constantly, but not in bulk.
+//metrics mMax;
+metrics mLast;
 
 unsigned long lastTick;
 unsigned long lastUpdate;
@@ -47,7 +50,7 @@ long avgSendDelay;   // ms
 bool disableLogging = false;
 bool sendInfx = false;
 
-const long MIN_SEND_WAIT = 100;  // in ms
+const long MIN_SEND_WAIT = 50;  // in ms
 const long MAX_SEND_WAIT = 1000; // in ms
 const long TIMEOUT_WAIT = 1000;  // in ms
 const long UPDATE_WAIT = 500;    // in ms
@@ -211,6 +214,7 @@ void writeLog() {
 #ifdef DEBUG
             Serial.println(F("Could not open file for writing"));
 #endif
+            disableLogging = true;
             return;
         }
     }
@@ -381,10 +385,10 @@ void loop() {
 
         if (sendInfx) {
             sendInfx = false;
-            Message msg("infx");
+            Message msg("he");
             radio->send(&msg);
         } else {
-            Message msg("helo");
+            Message msg("lo");
             radio->send(&msg);
             sendInfx = true;
         }
@@ -393,6 +397,7 @@ void loop() {
     // Update metrics.
     tick = millis();
     if (tick - lastUpdate > UPDATE_WAIT) {
+        memcpy(&mLast, &m, sizeof(metrics));
         lastUpdate = tick;
         lastVcc = readVcc();
 
@@ -478,19 +483,19 @@ void loop() {
             Serial.print(F(","));
             Serial.println(m.longitude, 6);
         } else if (cmd[0] == 'U') {
-            Message msg("dtup");
+            Message msg("up");
             radio->send(&msg);
         } else if (cmd[0] == 'F') {
-            if (m.logging != 'i') {
+            if (m.logging != MODULE_ENABLED) {
                 Serial.println(F("Requesting to enable logging"));
             } else {
                 Serial.println(F("Requesting to disable logging"));
             }
-            Message msg("tlog");
+            Message msg("tl");
             radio->send(&msg);
         } else if (cmd[0] == 'T') {
             Serial.print(F("Remote data logging is "));
-            Serial.println(m.logging == 'i' ? "enabled" : "disabled");
+            Serial.println(m.logging == MODULE_ENABLED ? "enabled" : "disabled");
         }
     }
 }

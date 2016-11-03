@@ -270,7 +270,12 @@ void updateGps() {
             Serial.print(F("Location: "));
             Serial.print(m.latitude, 6);
             Serial.print(F(","));
-            Serial.print(m.longitude, 6);
+            Serial.println(m.longitude, 6);
+
+            Serial.print(F("Date: "));
+            Serial.println(m.date);
+            Serial.print(F("Time: "));
+            Serial.println(m.time);
 
             Serial.println();
 #ifndef DEBUGV
@@ -280,7 +285,7 @@ void updateGps() {
 }
 
 void log() {
-    if (m.logging != 'i') {
+    if (m.logging != MODULE_ENABLED) {
         return;
     }
 
@@ -288,7 +293,7 @@ void log() {
           && fram.write(m.longitude) && fram.write(m.altitude)
           && fram.write(m.altitudeGps) && fram.write(m.speed))
     ) {
-        m.logging = 'o';
+        m.logging = MODULE_DISABLED;
         Serial.println(F("FRAM disabled, storage full."));
     }
 }
@@ -314,12 +319,13 @@ void loop() {
         update();
     }
 
+    while (gpsSerial.available()) {
+        gps.encode(gpsSerial.read());
+    }
+
     diff = tick - lastGpsUpdate;
     if (diff >= GPS_WAIT) {
         lastGpsUpdate = tick;
-        while (gpsSerial.available()) {
-            gps.encode(gpsSerial.read());
-        }
         updateGps();
     }
 
@@ -339,7 +345,7 @@ void loop() {
             Serial.print(F("Radio is "));
             Serial.println(radioEnabled ? "enabled" : "disabled");
             Serial.print(F("Logging is "));
-            Serial.println(m.logging == 'i' ? "enabled" : "disabled");
+            Serial.println(m.logging == MODULE_ENABLED ? "enabled" : "disabled");
             Serial.print(F("Average tick delay: "));
             Serial.print(avgTickDelay);
             Serial.println(F("ms"));
@@ -368,15 +374,15 @@ void loop() {
                 Serial.println(fram.readFloat(pos+20), 6);
             }
         } else if (cmd == 'S') {
-            if (m.logging != 'i') {
+            if (m.logging != MODULE_ENABLED) {
                 if (framStarted) {
-                    m.logging = 'i';
+                    m.logging = MODULE_ENABLED;
                     Serial.println(F("FRAM logging enabled."));
                 } else {
                     Serial.println(F("FRAM not started; unable to enable logging."));
                 }
             } else {
-                m.logging = 'o';
+                m.logging = MODULE_DISABLED;
                 Serial.println(F("FRAM logging disabled."));
             }
         } else if (cmd == 'D') {

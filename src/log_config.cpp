@@ -19,7 +19,7 @@ void LogSettingsViewController::tick() {
         _lastUpdate = update;
         _txtLocalEnabled->setValue("TODO");
         pipe->push(drawControlForwarder, _txtLocalEnabled);
-        _txtRemoteEnabled->setValue(m.logging == 'i' ? "ON" : "OFF");
+        _txtRemoteEnabled->setValue(m.logging == MODULE_ENABLED ? "ON" : "OFF");
         pipe->push(drawControlForwarder, _txtRemoteEnabled);
     }
 }
@@ -73,12 +73,12 @@ void LogSettingsViewController::init() {
     _btnRemoteToggle->setLabel("Toggle");
     _btnRemoteToggle->fontSize = 2;
     _btnRemoteToggle->then([](void *context) {
-        if (m.logging != 'i') {
+        if (m.logging != MODULE_ENABLED) {
             Serial.println(F("Requesting to enable logging"));
         } else {
             Serial.println(F("Requesting to disable logging"));
         }
-        Message msg("tlog");
+        Message msg("tl");
         radio->send(&msg);
         delay(10);
     }, NULL);
