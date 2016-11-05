@@ -1,5 +1,5 @@
 #include "dashboard.h"
-#include "message.h"
+#include "common/message.h"
 #include "settings.h"
 #include "programs.h"
 

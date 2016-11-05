@@ -1,6 +1,6 @@
 #include <synack.h>
 #include "log_config.h"
-#include "message.h"
+#include "common/message.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;

@@ -1,6 +1,6 @@
 #include <EEPROM.h>
 #include "position.h"
-#include "message.h"
+#include "common/message.h"
 
 const unsigned int CENTER_ADDR = 0x80;
 

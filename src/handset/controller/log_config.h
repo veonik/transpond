@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_VIB_OFFSET_H
 #define TRANSPOND_VIB_OFFSET_H
 
-#include "gui.h"
+#include "handset/gui.h"
 
 class LogSettingsViewController : public ViewController {
 private:

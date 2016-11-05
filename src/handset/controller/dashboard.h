@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_DASHBOARD_H
 #define TRANSPOND_DASHBOARD_H
 
-#include "gui.h"
+#include "handset/gui.h"
 
 class Stat : public Control {
 private:

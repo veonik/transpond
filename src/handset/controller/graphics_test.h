@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_GRAPHICS_TEST_H
 #define TRANSPOND_GRAPHICS_TEST_H
 
-#include "gui.h"
+#include "handset/gui.h"
 
 class GraphicsTestViewController : public ViewController {
 public:

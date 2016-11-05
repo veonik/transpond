@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_POSITION_H
 #define TRANSPOND_POSITION_H
 
-#include "gui.h"
+#include "handset/gui.h"
 #include <Adafruit_Sensor.h>
 #include <Adafruit_10DOF.h>
 

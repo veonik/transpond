@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_INPUT_H
 #define TRANSPOND_INPUT_H
 
-#include "gui.h"
+#include "handset/gui.h"
 
 typedef void (*inputReceivedCallback)(void*, const char*);
 

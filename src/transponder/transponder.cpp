@@ -22,8 +22,8 @@
 
 #include <TinyGPS++.h>
 
-#include "util.h"
-#include "message.h"
+#include "common/util.h"
+#include "common/message.h"
 #include "gps.h"
 #include "fram.h"
 

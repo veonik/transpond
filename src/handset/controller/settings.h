@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_SETTINGS_H
 #define TRANSPOND_SETTINGS_H
 
-#include "gui.h"
+#include "handset/gui.h"
 
 class SettingsViewController : public ViewController {
 private:

@@ -9,10 +9,10 @@
 #include <EEPROM.h>
 
 #include "gui.h"
-#include "util.h"
-#include "message.h"
+#include "common/util.h"
+#include "common/message.h"
 
-#include "dashboard.h"
+#include "handset/controller/dashboard.h"
 
 #define TFT_DC 6
 #define TFT_CS 5

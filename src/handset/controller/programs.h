@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_PROGRAMS_H
 #define TRANSPOND_PROGRAMS_H
 
-#include "gui.h"
+#include "handset/gui.h"
 
 class ProgramsViewController : public ViewController {
 private:
