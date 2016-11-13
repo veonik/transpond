@@ -8,7 +8,6 @@
 #include <SPI.h>
 #include <EEPROM.h>
 
-#include "gui.h"
 #include "common/util.h"
 #include "common/message.h"
 
@@ -17,8 +16,6 @@
 #define TFT_DC 6
 #define TFT_CS 5
 #define SD_CS 4
-
-const unsigned int CURRENT_FILE_ADDR = 0x88;
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
@@ -384,14 +381,13 @@ void loop() {
         }
 
         if (sendInfx) {
-            sendInfx = false;
             Message msg("he");
             radio->send(&msg);
         } else {
             Message msg("lo");
             radio->send(&msg);
-            sendInfx = true;
         }
+        sendInfx = !sendInfx;
     }
 
     // Update metrics.

@@ -108,7 +108,6 @@ void DashboardViewController::init() {
     _rssi->setHideLabel(true);
     _rssi->setUnit("dBm");
     _rssi->setColor(ILI9341_PURPLE);
-    _rssi->setInvert(true);
     _rssi->setEnableChart(true);
     pipe->push(drawLabelForwarder, _rssi);
     pipe->push(drawChartForwarder, _rssi);
@@ -118,7 +117,6 @@ void DashboardViewController::init() {
     _rrssi->setHideLabel(true);
     _rrssi->setUnit("dBm");
     _rrssi->setColor(ILI9341_CYAN);
-    _rrssi->setInvert(true);
     _rrssi->setEnableChart(true);
     pipe->push(drawLabelForwarder, _rrssi);
     pipe->push(drawChartForwarder, _rrssi);
@@ -175,10 +173,6 @@ void Stat::setColor(int color) {
     _chartColor = (uint16_t) color;
 }
 
-void Stat::setInvert(bool invert) {
-    _invertChart = invert;
-}
-
 void Stat::set(float stat) {
     if (invalidReadingf(stat)) {
         return set(NO_READING_INT);
@@ -192,18 +186,14 @@ void Stat::set(int stat) {
     if (_end >= _chartWidth-80) {
         _end = 0;
         _redrawChart = true;
-        _min = 0;
-        _max = 0;
     }
     if (validReadingi(stat)) {
-        if (abs(stat) < _min || _min == 0) {
-            _min = abs(stat);
-            if (_min > 0) {
-                _min--;
-            }
-        } else if (abs(stat) > _max) {
+        if (stat < _min) {
+            _min = stat - 1;
             _redrawChart = true;
-            _max = abs(stat) + 1;
+        } else if (stat > _max) {
+            _max = stat + 1;
+            _redrawChart = true;
         }
     }
     _historical[_end] = stat;
@@ -228,7 +218,6 @@ void Stat::drawLabel() {
         tft.print(_labelText);
     }
     tft.fillRect(_value.x, _value.y, _controlWidth, 17, tft.color565(10, 10, 10));
-    _lastDrawWidth = _controlWidth;
 }
 
 void Stat::drawValue() {
@@ -274,19 +263,14 @@ void Stat::drawChart() {
     if (_redrawChart) {
         _cur = 0;
         tft.fillRect(_chart.x, _chart.y - 1 /* catch the top of the unit of the axis */,
-                     _chartWidth, 31 /* to catch the bottom of the unit on the axis */,
+                     _chartWidth, 32 /* to catch the bottom of the unit on the axis */,
                      ILI9341_BLACK);
         tft.setCursor(_chart.x + 27 - ((int16_t) strlen(_labelText) * 6), _chart.y + 12+CURSOR_Y_SMALL);
         tft.setTextColor(ILI9341_WHITE);
         tft.setFont(&Inconsolata_g5pt7b);
         tft.print(_labelText);
         tft.setCursor(_chart.x + _chartWidth - 45, _chart.y+CURSOR_Y_SMALL);
-        if (_invertChart) {
-            tft.print("-");
-            tft.print(_min);
-        } else {
-            tft.print(_max);
-        }
+        tft.print(_max == INT_MIN ? 0 : _max);
 
         if (_unitText) {
             tft.setTextColor(_chartColor);
@@ -295,12 +279,7 @@ void Stat::drawChart() {
             tft.setTextColor(ILI9341_WHITE);
         }
         tft.setCursor(_chart.x + _chartWidth - 45, _chart.y + 24+CURSOR_Y_SMALL);
-        if (_invertChart) {
-            tft.print("-");
-            tft.print(_max);
-        } else {
-            tft.print(_min);
-        }
+        tft.print(_min == INT_MAX ? 0 : _min);
         tft.setFont(&Inconsolata_g8pt7b);
         _redrawChart = false;
         tft.fillRect(_chart.x + 30, _chart.y, _chartWidth - 80, 30, tft.color565(10, 10, 10));
@@ -311,17 +290,9 @@ void Stat::drawChart() {
             tft.drawFastVLine(_chart.x+30+_cur, _chart.y, 30, ILI9341_MAROON);
             continue;
         }
-        float norm = ((float) abs(_historical[_cur]))/(_max);
+        int norm = (int) map(_historical[_cur], _min, _max, 0, 29);
         int x = _chart.x+30+_cur;
-        int y;
-        if (!_invertChart) {
-            y = _chart.y+29-((int) round(norm*29));
-        } else {
-            y = _chart.y+((int) round(norm*29));
-        }
-        if (y < _chart.y || y > _chart.y+29) {
-            continue;
-        }
+        int y = _chart.y+29-norm;
         tft.fillRect(x, y, 1, 1, _chartColor);
     }
 }

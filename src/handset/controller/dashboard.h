@@ -1,6 +1,7 @@
 #ifndef TRANSPOND_DASHBOARD_H
 #define TRANSPOND_DASHBOARD_H
 
+#include <limits.h>
 #include "handset/gui.h"
 
 class Stat : public Control {
@@ -10,7 +11,6 @@ private:
 
     int _chartWidth = 240;
     int _controlWidth = 60;
-    int _lastDrawWidth = 60;
     const char *_labelText = "";
     const char *_unitText = "";
 
@@ -23,9 +23,8 @@ private:
     bool _enableChart = false;
     bool _hideLabel = false;
     bool _redrawChart = true;
-    bool _invertChart = false;
-    int _min = 0;
-    int _max = 0;
+    int _min = INT_MAX;
+    int _max = INT_MIN;
     short _cur = 0;
     short _end = 0;
     uint16_t _chartColor = ILI9341_RED;
@@ -51,8 +50,6 @@ public:
     void setUnit(const char *unit);
 
     void setColor(int color);
-
-    void setInvert(bool invert);
 
     void set(float stat);
 
