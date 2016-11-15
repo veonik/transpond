@@ -2,6 +2,8 @@
 #include "graphics_test.h"
 #include "position.h"
 #include "input.h"
+#include "dashboard.h"
+#include "dashboard2.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
@@ -11,6 +13,8 @@ void ProgramsViewController::tick() {
     _btnGraphicsTest->tick();
     _btnInputTest->tick();
     _btnPosition->tick();
+    _btnDashboard2->tick();
+    _btnDashboard->tick();
 }
 
 void ProgramsViewController::draw() {
@@ -27,7 +31,23 @@ void ProgramsViewController::init() {
     }, NULL);
     pipe->push(drawControlForwarder, _btnExit);
 
-    _btnGraphicsTest = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
+    _btnDashboard = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
+    _btnDashboard->setLabel("Dashboard");
+    _btnDashboard->fontSize = 2;
+    _btnDashboard->then([](void *context) {
+        pipe->segueTo(new DashboardViewController());
+    }, NULL);
+    pipe->push(drawControlForwarder, _btnDashboard);
+
+    _btnDashboard2 = new Button(Point{x: 10, y: 50}, Size{w: 150, h: 30});
+    _btnDashboard2->setLabel("Dashboard 2.0");
+    _btnDashboard2->fontSize = 2;
+    _btnDashboard2->then([](void *context) {
+        pipe->segueTo(new Dashboard2ViewController());
+    }, NULL);
+    pipe->push(drawControlForwarder, _btnDashboard2);
+
+    _btnGraphicsTest = new Button(Point{x: 10, y: 90}, Size{w: 150, h: 30});
     _btnGraphicsTest->setLabel("Graphics Test");
     _btnGraphicsTest->fontSize = 2;
     _btnGraphicsTest->then([](void *context) {
@@ -35,17 +55,18 @@ void ProgramsViewController::init() {
     }, NULL);
     pipe->push(drawControlForwarder, _btnGraphicsTest);
 
-    _btnInputTest = new Button(Point{x: 10, y: 50}, Size{w: 150, h: 30});
+    _btnInputTest = new Button(Point{x: 10, y: 130}, Size{w: 150, h: 30});
     _btnInputTest->setLabel("Input Test");
     _btnInputTest->fontSize = 2;
     _btnInputTest->then([](void *context) {
-        pipe->seguePopover(new InputViewController("", [](void *context, const char *result) {
+        pipe->seguePopover(new InputViewController("", [](void *ctx, const char *result) {
+            static_cast<ProgramsViewController*>(ctx)->_btnInputTest->setLabel(result);
             Serial.println(result);
-        }));
-    }, NULL);
+        }, context));
+    }, this);
     pipe->push(drawControlForwarder, _btnInputTest);
 
-    _btnPosition = new Button(Point{x: 10, y: 90}, Size{w: 150, h: 30});
+    _btnPosition = new Button(Point{x: 10, y: 170}, Size{w: 150, h: 30});
     _btnPosition->setLabel("Positioning");
     _btnPosition->fontSize = 2;
     _btnPosition->then([](void *context) {

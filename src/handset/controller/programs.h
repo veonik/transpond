@@ -10,6 +10,8 @@ private:
     Button *_btnGraphicsTest;
     Button *_btnInputTest;
     Button *_btnPosition;
+    Button *_btnDashboard2;
+    Button *_btnDashboard;
 
 public:
     ProgramsViewController() : ViewController() { }
@@ -29,6 +31,8 @@ public:
         delete _btnGraphicsTest;
         delete _btnInputTest;
         delete _btnPosition;
+        delete _btnDashboard2;
+        delete _btnDashboard;
     }
 };
 

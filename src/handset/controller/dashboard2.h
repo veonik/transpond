@@ -1,14 +1,14 @@
-#ifndef TRANSPOND_DASHBOARD_H
-#define TRANSPOND_DASHBOARD_H
+#ifndef TRANSPOND_DASHBOARD2_H
+#define TRANSPOND_DASHBOARD2_H
 
 #include <limits.h>
 #include "handset/gui.h"
 
-class DashboardViewController : public ViewController {
+class Dashboard2ViewController : public ViewController {
 private:
     Button *_btnSettings;
     Button *_btnPrograms;
-    Button *_btnClear;
+    Button *_btnConfig;
     Stat *_ack;
     Stat *_lag;
     Stat *_rssi;
@@ -24,9 +24,9 @@ private:
 public:
     uint16_t bgColor = ILI9341_BLACK;
 
-    DashboardViewController() : ViewController() { }
+    Dashboard2ViewController() : ViewController() { }
 
-    ~DashboardViewController() {
+    ~Dashboard2ViewController() {
         if (_init) {
             deinit();
         }
@@ -42,7 +42,7 @@ public:
         _init = false;
         delete _btnSettings;
         delete _btnPrograms;
-        delete _btnClear;
+        delete _btnConfig;
         delete _ack;
         delete _lag;
         delete _rssi;

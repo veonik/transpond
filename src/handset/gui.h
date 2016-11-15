@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <Adafruit_ILI9341.h>
 #include <SeeedTouchScreen.h>
+#include <limits.h>
 
 #include "Inconsolata_g5pt7b.h"
 #include "Inconsolata_g8pt7b.h"
@@ -33,6 +34,11 @@
 
 void drawControlForwarder(void *context);
 void drawViewControllerForwarder(void *context);
+
+// TODO: dont expose these
+void drawValueForwarder(void* context);
+void drawChartForwarder(void* context);
+void drawLabelForwarder(void* context);
 
 typedef void (*tickCallback)(void*);
 
@@ -192,6 +198,70 @@ public:
     void tick();
 
     void draw();
+};
+
+
+
+class Stat : public Control {
+private:
+    Point _value;
+    Point _chart;
+
+    int _chartWidth = 240;
+    int _controlWidth = 60;
+    const char *_labelText = "";
+    const char *_unitText = "";
+
+    int _lastValDrawn;
+    int _lastValLength = 0;
+    char _lastVal[8];
+
+    int _stat;
+    int _historical[160];
+    bool _enableChart = false;
+    bool _hideLabel = false;
+    bool _redrawChart = true;
+    int _min = INT_MAX;
+    int _max = INT_MIN;
+    short _cur = 0;
+    short _end = 0;
+    uint16_t _chartColor = ILI9341_RED;
+
+
+public:
+    Stat(short labelX, short labelY, short valueX, short valueY, short chartX, short chartY) :
+            Control(Point{x: labelX, y: labelY}, Size{w: 0, h: 0}) {
+        _value = Point{x: valueX, y: valueY};
+        _chart = Point{x: chartX, y: chartY};
+    }
+
+    ~Stat() { }
+
+    void setEnableChart(bool enable);
+
+    void setChartWidth(int width);
+
+    void setLabel(const char *label);
+
+    void setHideLabel(bool hide);
+
+    void setUnit(const char *unit);
+
+    void setColor(int color);
+
+    void set(float stat);
+
+    void set(int stat);
+
+    void tick();
+
+    void draw();
+
+    void drawLabel();
+
+    void drawValue();
+
+    void drawChart();
 };
 
 #endif

@@ -1,7 +1,8 @@
-#include "dashboard.h"
+#include "dashboard2.h"
 #include "common/message.h"
 #include "settings.h"
 #include "programs.h"
+#include "dashboard_config.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
@@ -17,12 +18,10 @@ extern int lastRoundtrip;         // ms
 extern int lastVcc;               // mV
 extern int sinceLastAck;          // sec
 
-
-
-void DashboardViewController::tick() {
+void Dashboard2ViewController::tick() {
     _btnSettings->tick();
     _btnPrograms->tick();
-    _btnClear->tick();
+    _btnConfig->tick();
 
     if (_lastUpdate < lastUpdate) {
         _ack->set(sinceLastAck);
@@ -48,11 +47,11 @@ void DashboardViewController::tick() {
     }
 }
 
-void DashboardViewController::draw() {
+void Dashboard2ViewController::draw() {
     tft.fillScreen(bgColor);
 }
 
-void DashboardViewController::init() {
+void Dashboard2ViewController::init() {
     _init = true;
     bgColor = ILI9341_BLACK;
     pipe->push(drawViewControllerForwarder, this);
@@ -73,15 +72,13 @@ void DashboardViewController::init() {
     }, NULL);
     pipe->push(drawControlForwarder, _btnPrograms);
 
-    _btnClear = new Button(Point{x: 170, y: 280}, Size{w: 60, h: 30});
-    _btnClear->bgColor = tft.color565(75, 75, 75);
-    _btnClear->setLabel("CLR");
-    _btnClear->then([](void *context) {
-        DashboardViewController* vc = static_cast<DashboardViewController*>(context);
-        vc->deinit();
-        vc->init();
-    }, this);
-    pipe->push(drawControlForwarder, _btnClear);
+    _btnConfig = new Button(Point{x: 170, y: 280}, Size{w: 60, h: 30});
+    _btnConfig->bgColor = tft.color565(75, 75, 75);
+    _btnConfig->setLabel("CFG");
+    _btnConfig->then([](void *context) {
+        pipe->seguePopover(new DashboardConfigViewController());
+    }, NULL);
+    pipe->push(drawControlForwarder, _btnConfig);
 
     _ack = new Stat(10, 10, 50, 10, 10, 90);
     _ack->setLabel("ack");

@@ -1,3 +1,4 @@
+#include "common/message.h"
 #include "gui.h"
 
 extern Adafruit_ILI9341 tft;
@@ -235,8 +236,169 @@ void Textbox::invalidate() {
     _lastValLength = 0;
 }
 
+
+void Stat::setEnableChart(bool enable) {
+    _enableChart = enable;
+}
+
+void Stat::setChartWidth(int width) {
+    _chartWidth = width;
+}
+
+void Stat::setLabel(const char *label) {
+    _labelText = label;
+}
+
+void Stat::setHideLabel(bool hide) {
+    _hideLabel = hide;
+    _controlWidth = !_hideLabel ? 60 : 100;
+}
+
+void Stat::setUnit(const char *unit) {
+    _unitText = unit;
+}
+
+void Stat::setColor(int color) {
+    _chartColor = (uint16_t) color;
+}
+
+void Stat::set(float stat) {
+    if (invalidReadingf(stat)) {
+        return set(NO_READING_INT);
+    }
+    set((int) stat);
+}
+
+void Stat::set(int stat) {
+    _stat = stat;
+    _end++;
+    if (_end >= _chartWidth-80) {
+        _end = 0;
+        _redrawChart = true;
+    }
+    if (validReadingi(stat)) {
+        if (stat < _min) {
+            _min = stat - 1;
+            _redrawChart = true;
+        } else if (stat > _max) {
+            _max = stat + 1;
+            _redrawChart = true;
+        }
+    }
+    _historical[_end] = stat;
+}
+
+void Stat::tick() {
+    pipe->push(drawValueForwarder, this);
+    if (_enableChart) {
+        pipe->push(drawChartForwarder, this);
+    }
+}
+
+void Stat::draw() {
+    // no op, see tick
+}
+
+void Stat::drawLabel() {
+    if (!_hideLabel) {
+        tft.setFont(&Inconsolata_g8pt7b);
+        tft.setCursor(_pos.x, _pos.y+1+CURSOR_Y_LARGE);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.print(_labelText);
+    }
+    tft.fillRect(_value.x, _value.y, _controlWidth, 17, tft.color565(10, 10, 10));
+}
+
+void Stat::drawValue() {
+    char valStr[8];
+    int valLength;
+    if (validReadingi(_stat)) {
+        valLength = sprintf(valStr, "%d", _stat);
+    } else {
+        valLength = sprintf(valStr, "-- ");
+    }
+    if (_lastValLength > 0) {
+        if (_lastValDrawn == _stat) {
+            return;
+        }
+
+        tft.setCursor(_value.x, _value.y + 1 + CURSOR_Y_LARGE);
+        tft.setFont(&Inconsolata_g8pt7b);
+        tft.setTextColor(tft.color565(10, 10, 10));
+        tft.print(_lastVal);
+
+
+        if (valLength != _lastValLength) {
+            tft.setFont(&Inconsolata_g5pt7b);
+            tft.print(_unitText);
+        }
+    }
+
+    tft.setCursor(_value.x, _value.y+1+CURSOR_Y_LARGE);
+    tft.setFont(&Inconsolata_g8pt7b);
+    tft.setTextColor(ILI9341_WHITE, tft.color565(10, 10, 10));
+    tft.print(valStr);
+    tft.setFont(&Inconsolata_g5pt7b);
+    if (valLength != _lastValLength) {
+        tft.setFont(&Inconsolata_g5pt7b);
+        tft.print(_unitText);
+    }
+    memcpy(_lastVal, valStr, valLength+1);
+    _lastValDrawn = _stat;
+    _lastValLength = valLength;
+}
+
+void Stat::drawChart() {
+    if (_redrawChart) {
+        _cur = 0;
+        tft.fillRect(_chart.x, _chart.y - 1 /* catch the top of the unit of the axis */,
+                     _chartWidth, 32 /* to catch the bottom of the unit on the axis */,
+                     ILI9341_BLACK);
+        tft.setCursor(_chart.x + 27 - ((int16_t) strlen(_labelText) * 6), _chart.y + 12+CURSOR_Y_SMALL);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setFont(&Inconsolata_g5pt7b);
+        tft.print(_labelText);
+        tft.setCursor(_chart.x + _chartWidth - 45, _chart.y+CURSOR_Y_SMALL);
+        tft.print(_max == INT_MIN ? 0 : _max);
+
+        if (_unitText) {
+            tft.setTextColor(_chartColor);
+            tft.setCursor(_chart.x + _chartWidth - 45, _chart.y + 12+CURSOR_Y_SMALL);
+            tft.print(_unitText);
+            tft.setTextColor(ILI9341_WHITE);
+        }
+        tft.setCursor(_chart.x + _chartWidth - 45, _chart.y + 24+CURSOR_Y_SMALL);
+        tft.print(_min == INT_MAX ? 0 : _min);
+        tft.setFont(&Inconsolata_g8pt7b);
+        _redrawChart = false;
+        tft.fillRect(_chart.x + 30, _chart.y, _chartWidth - 80, 30, tft.color565(10, 10, 10));
+    }
+
+    for ( ; _cur < _end; _cur++) {
+        if (invalidReadingi(_historical[_cur])) {
+            tft.drawFastVLine(_chart.x+30+_cur, _chart.y, 30, ILI9341_MAROON);
+            continue;
+        }
+        int norm = (int) map(_historical[_cur], _min, _max, 0, 29);
+        int x = _chart.x+30+_cur;
+        int y = _chart.y+29-norm;
+        tft.fillRect(x, y, 1, 1, _chartColor);
+    }
+}
+
 void drawControlForwarder(void *context) {
     static_cast<Control*>(context)->draw();
+}
+
+void drawLabelForwarder(void* context) {
+    static_cast<Stat*>(context)->drawLabel();
+}
+
+void drawValueForwarder(void* context) {
+    static_cast<Stat*>(context)->drawValue();
+}
+void drawChartForwarder(void* context) {
+    static_cast<Stat*>(context)->drawChart();
 }
 
 void drawViewControllerForwarder(void *context) {
