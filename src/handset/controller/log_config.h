@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_VIB_OFFSET_H
 #define TRANSPOND_VIB_OFFSET_H
 
-#include "handset/gui.h"
+#include "../gui.h"
 
 class LogSettingsViewController : public ViewController {
 private:
@@ -19,20 +19,10 @@ private:
 
     unsigned long _lastUpdate = 0;
 
-public:
-    LogSettingsViewController() : ViewController() { }
+protected:
+    void doInit();
 
-    ~LogSettingsViewController() {
-        deinit();
-    }
-
-    void tick();
-
-    void draw();
-
-    void init();
-
-    void deinit() {
+    void doDeInit() {
         delete _btnExit;
         delete _btnLocalToggle;
         delete _lblLocalEnabled;
@@ -41,6 +31,15 @@ public:
         delete _lblRemoteEnabled;
         delete _txtRemoteEnabled;
     }
+
+public:
+    LogSettingsViewController() : ViewController() { }
+
+    ~LogSettingsViewController() { deinit(); }
+
+    void tick();
+
+    void draw();
 };
 
 

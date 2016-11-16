@@ -1,4 +1,4 @@
-#include "common/message.h"
+#include "../common/message.h"
 #include "gui.h"
 
 extern Adafruit_ILI9341 tft;
@@ -92,9 +92,9 @@ void Pipeline::flush() {
     _draining = false;
 }
 
-ViewController::~ViewController() {}
-
 Control::~Control() {}
+
+ViewController::~ViewController() {}
 
 void Clickable::tick() {
     if (screen.isTouching(

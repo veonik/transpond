@@ -1,6 +1,6 @@
 #include <EEPROM.h>
 #include "position.h"
-#include "common/message.h"
+#include "../../common/message.h"
 
 const unsigned int CENTER_ADDR = 0x80;
 
@@ -318,7 +318,7 @@ void PositionViewController::zoomIn() {
 }
 
 
-void PositionViewController::init() {
+void PositionViewController::doInit() {
     tft.fillScreen(ILI9341_BLACK);
     tft.drawFastVLine(80, 0, 110, tft.color565(50, 50, 50));
     tft.drawFastVLine(160, 0, 110, tft.color565(50, 50, 50));

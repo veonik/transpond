@@ -1,5 +1,5 @@
 #include "dashboard.h"
-#include "common/message.h"
+#include "../../common/message.h"
 #include "settings.h"
 #include "programs.h"
 
@@ -16,8 +16,6 @@ extern int lastRssi;              // dBm
 extern int lastRoundtrip;         // ms
 extern int lastVcc;               // mV
 extern int sinceLastAck;          // sec
-
-
 
 void DashboardViewController::tick() {
     _btnSettings->tick();
@@ -52,8 +50,7 @@ void DashboardViewController::draw() {
     tft.fillScreen(bgColor);
 }
 
-void DashboardViewController::init() {
-    _init = true;
+void DashboardViewController::doInit() {
     bgColor = ILI9341_BLACK;
     pipe->push(drawViewControllerForwarder, this);
 
@@ -78,8 +75,8 @@ void DashboardViewController::init() {
     _btnClear->setLabel("CLR");
     _btnClear->then([](void *context) {
         DashboardViewController* vc = static_cast<DashboardViewController*>(context);
-        vc->deinit();
-        vc->init();
+        vc->doDeInit();
+        vc->doInit();
     }, this);
     pipe->push(drawControlForwarder, _btnClear);
 

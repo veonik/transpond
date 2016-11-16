@@ -5,7 +5,6 @@
 // TODO: improved i2c library for Teensy
 //#ifdef __MK64FX512__
 //#include <i2c_t3.h>
-//#define Wire TwoWire
 //#endif
 
 #include <CC1101Radio.h>
@@ -22,8 +21,8 @@
 
 #include <TinyGPS++.h>
 
-#include "common/util.h"
-#include "common/message.h"
+#include "../common/util.h"
+#include "../common/message.h"
 #include "gps.h"
 #include "fram.h"
 

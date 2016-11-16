@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_PROGRAMS_H
 #define TRANSPOND_PROGRAMS_H
 
-#include "handset/gui.h"
+#include "../gui.h"
 
 class ProgramsViewController : public ViewController {
 private:
@@ -13,20 +13,10 @@ private:
     Button *_btnDashboard2;
     Button *_btnDashboard;
 
-public:
-    ProgramsViewController() : ViewController() { }
+protected:
+    void doInit();
 
-    ~ProgramsViewController() {
-        deinit();
-    }
-
-    void tick();
-
-    void draw();
-
-    void init();
-
-    void deinit() {
+    void doDeInit() {
         delete _btnExit;
         delete _btnGraphicsTest;
         delete _btnInputTest;
@@ -34,6 +24,15 @@ public:
         delete _btnDashboard2;
         delete _btnDashboard;
     }
+
+public:
+    ProgramsViewController() : ViewController() { }
+
+    ~ProgramsViewController() { deinit(); }
+
+    void tick();
+
+    void draw();
 };
 
 

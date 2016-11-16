@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_SETTINGS_H
 #define TRANSPOND_SETTINGS_H
 
-#include "handset/gui.h"
+#include "../gui.h"
 
 class SettingsViewController : public ViewController {
 private:
@@ -9,23 +9,22 @@ private:
 
     Button *_btnLogConfig;
 
+protected:
+    void doInit();
+
+    void doDeInit() {
+        delete _btnExit;
+        delete _btnLogConfig;
+    }
+
 public:
     SettingsViewController() : ViewController() { }
 
-    ~SettingsViewController() {
-        deinit();
-    }
+    ~SettingsViewController() { deinit(); }
 
     void tick();
 
     void draw();
-
-    void init();
-
-    void deinit() {
-        delete _btnExit;
-        delete _btnLogConfig;
-    }
 };
 
 

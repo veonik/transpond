@@ -12,7 +12,7 @@ void DashboardConfigViewController::draw() {
     tft.fillScreen(0x2104);
 }
 
-void DashboardConfigViewController::init() {
+void DashboardConfigViewController::doInit() {
     pipe->push(drawViewControllerForwarder, this);
 
     _btnExit = new Button(Point{x: 200, y: 10}, Size{w: 30, h: 30});

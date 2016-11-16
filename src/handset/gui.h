@@ -53,14 +53,36 @@ struct Size {
 };
 
 class ViewController {
+private:
+    bool _inited = false;
+
+protected:
+    virtual void doInit() = 0;
+    virtual void doDeInit() = 0;
+
 public:
     virtual ~ViewController() = 0;
 
     virtual void tick() = 0;
     virtual void draw() = 0;
 
-    virtual void init() = 0;
-    virtual void deinit() = 0;
+    void init() {
+        if (_inited) {
+            return;
+        }
+
+        doInit();
+        _inited = true;
+    }
+
+    void deinit() {
+        if (!_inited) {
+            return;
+        }
+
+        doDeInit();
+        _inited = false;
+    }
 };
 
 class Pipeline {
@@ -70,8 +92,8 @@ private:
     tickCallback _callbacks[SIZE];
     void *_contexts[SIZE];
 
-    short _pop = 0;
-    short _push = 0;
+    byte _pop = 0;
+    byte _push = 0;
     bool _draining = false;
 
     /**

@@ -68,7 +68,7 @@ void GraphicsTestViewController::draw() {
     pipe->segueBack();
 }
 
-void GraphicsTestViewController::init() {
+void GraphicsTestViewController::doInit() {
     pipe->push(drawViewControllerForwarder, this);
 }
 

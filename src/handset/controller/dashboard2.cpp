@@ -1,5 +1,5 @@
 #include "dashboard2.h"
-#include "common/message.h"
+#include "../../common/message.h"
 #include "settings.h"
 #include "programs.h"
 #include "dashboard_config.h"
@@ -51,8 +51,7 @@ void Dashboard2ViewController::draw() {
     tft.fillScreen(bgColor);
 }
 
-void Dashboard2ViewController::init() {
-    _init = true;
+void Dashboard2ViewController::doInit() {
     bgColor = ILI9341_BLACK;
     pipe->push(drawViewControllerForwarder, this);
 

@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_INPUT_H
 #define TRANSPOND_INPUT_H
 
-#include "handset/gui.h"
+#include "../gui.h"
 
 typedef void (*inputReceivedCallback)(void*, const char*);
 
@@ -27,25 +27,10 @@ private:
 
     char _value[16];
 
-public:
-    InputViewController(const char *value, inputReceivedCallback callback) : InputViewController(value, callback, NULL) {}
-    InputViewController(const char *value, inputReceivedCallback callback, void *context) : ViewController() {
-        strncpy(_value, value, 16);
-        _onDone = callback;
-        _onDoneContext = context;
-    }
+protected:
+    void doInit();
 
-    ~InputViewController() {
-        deinit();
-    }
-
-    void tick();
-
-    void draw();
-
-    void init();
-
-    void deinit() {
+    void doDeInit() {
         if (_onDone != NULL) {
             _onDone(_onDoneContext, _textbox->getValue());
             _onDone = NULL;
@@ -65,6 +50,20 @@ public:
         delete _buttonBackspace;
         delete _buttonDone;
     }
+
+public:
+    InputViewController(const char *value, inputReceivedCallback callback) : InputViewController(value, callback, NULL) {}
+    InputViewController(const char *value, inputReceivedCallback callback, void *context) : ViewController() {
+        strncpy(_value, value, 16);
+        _onDone = callback;
+        _onDoneContext = context;
+    }
+
+    ~InputViewController() { deinit(); }
+
+    void tick();
+
+    void draw();
 
     void write(char c);
 

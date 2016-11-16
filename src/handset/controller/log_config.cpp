@@ -1,6 +1,6 @@
 #include <synack.h>
 #include "log_config.h"
-#include "common/message.h"
+#include "../../common/message.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
@@ -28,7 +28,7 @@ void LogSettingsViewController::draw() {
     tft.fillScreen(0x2104);
 }
 
-void LogSettingsViewController::init() {
+void LogSettingsViewController::doInit() {
     pipe->push(drawViewControllerForwarder, this);
 
     _btnExit = new Button(Point{x: 200, y: 10}, Size{w: 30, h: 30});

@@ -2,7 +2,7 @@
 #define TRANSPOND_DASHBOARD_H
 
 #include <limits.h>
-#include "handset/gui.h"
+#include "../gui.h"
 
 class DashboardViewController : public ViewController {
 private:
@@ -19,27 +19,11 @@ private:
     Stat *_altitude;
 
     unsigned long _lastUpdate = 0;
-    bool _init = false;
 
-public:
-    uint16_t bgColor = ILI9341_BLACK;
+protected:
+    void doInit();
 
-    DashboardViewController() : ViewController() { }
-
-    ~DashboardViewController() {
-        if (_init) {
-            deinit();
-        }
-    }
-
-    void tick();
-
-    void draw();
-
-    void init();
-
-    void deinit() {
-        _init = false;
+    void doDeInit() {
         delete _btnSettings;
         delete _btnPrograms;
         delete _btnClear;
@@ -52,6 +36,17 @@ public:
         delete _vib;
         delete _altitude;
     }
+
+public:
+    uint16_t bgColor = ILI9341_BLACK;
+
+    DashboardViewController() : ViewController() { }
+
+    ~DashboardViewController() { deinit(); }
+
+    void tick();
+
+    void draw();
 };
 
 

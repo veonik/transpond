@@ -1,23 +1,22 @@
 #ifndef TRANSPOND_GRAPHICS_TEST_H
 #define TRANSPOND_GRAPHICS_TEST_H
 
-#include "handset/gui.h"
+#include "../gui.h"
 
 class GraphicsTestViewController : public ViewController {
+protected:
+    void doInit();
+
+    void doDeInit() { }
+
 public:
     GraphicsTestViewController() : ViewController() { }
 
-    ~GraphicsTestViewController() {
-        deinit();
-    }
+    ~GraphicsTestViewController() { deinit(); }
 
     void tick();
 
     void draw();
-
-    void init();
-
-    void deinit() {}
 
     unsigned long testFillScreen();
 

@@ -6,12 +6,12 @@
 #include <Adafruit_ILI9341.h>
 #include <SD.h>
 #include <SPI.h>
-#include <EEPROM.h>
 
-#include "common/util.h"
-#include "common/message.h"
+#include "../common/util.h"
+#include "../common/message.h"
 
-#include "handset/controller/dashboard.h"
+#include "gui.h"
+#include "controller/dashboard.h"
 
 #define TFT_DC 6
 #define TFT_CS 5

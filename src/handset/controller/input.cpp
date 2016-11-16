@@ -60,7 +60,7 @@ void InputViewController::clear() {
     pipe->push(drawControlForwarder, _textbox);
 }
 
-void InputViewController::init() {
+void InputViewController::doInit() {
     pipe->push(drawViewControllerForwarder, this);
 
     short cols[3] = {0,80,160};

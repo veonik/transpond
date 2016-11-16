@@ -1,7 +1,7 @@
 #ifndef TRANSPOND_POSITION_H
 #define TRANSPOND_POSITION_H
 
-#include "handset/gui.h"
+#include "../gui.h"
 #include <Adafruit_Sensor.h>
 #include <Adafruit_10DOF.h>
 
@@ -56,35 +56,10 @@ private:
 
     void _deferDrawPositionStats();
 
-public:
-    PositionViewController() : ViewController() {
-        _dof = Adafruit_10DOF();
-    }
+protected:
+    void doInit();
 
-    ~PositionViewController() {
-        deinit();
-    }
-
-    void tick();
-
-    void draw();
-
-    void drawPRH();
-    void drawPRH2();
-    void drawPos();
-
-    void center();
-
-    void zoomIn();
-    void zoomOut();
-
-    void resetAltMax() {
-        _altMax = 0.0;
-    }
-
-    void init();
-
-    void deinit() {
+    void doDeInit() {
         delete _btnExit;
         delete _btnCenter;
         delete _lblXValue;
@@ -108,6 +83,30 @@ public:
         delete _btnZoomIn;
         delete _btnZoomOut;
         delete _txtZoomLevel;
+    }
+
+public:
+    PositionViewController() : ViewController() {
+        _dof = Adafruit_10DOF();
+    }
+
+    ~PositionViewController() { deinit(); }
+
+    void tick();
+
+    void draw();
+
+    void drawPRH();
+    void drawPRH2();
+    void drawPos();
+
+    void center();
+
+    void zoomIn();
+    void zoomOut();
+
+    void resetAltMax() {
+        _altMax = 0.0;
     }
 };
 
