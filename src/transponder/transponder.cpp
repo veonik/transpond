@@ -65,6 +65,8 @@ const long WRITE_WAIT = 250;    // in ms
 const long UPDATE_WAIT = 64;    // in ms
 const long GPS_WAIT = 100;    // in ms
 
+char requested[3];
+
 metrics m;
 
 void initSensors() {
@@ -111,18 +113,28 @@ int printGpsI;
 void onMessageReceived(Message *msg) {
     lastReceipt = micros();
     m.rssi = msg->rssi;
-    size_t s;
-    char ack[61];
-    packFn cmd = getCommand(msg->getBody());
-    if (cmd == NULL) {
-        Serial.print(F("unknown command received: "));
-        Serial.println(msg->getBody());
+
+    strncpy(requested, msg->getBody(), 2);
+}
+
+void send() {
+    if (requested[0] == 0) {
         return;
     }
-
+    size_t s;
+    char ack[61];
+    packFn cmd = getCommand(requested);
+    requested[0] = 0;
+    requested[1] = 0;
+    requested[2] = 0;
+    if (cmd == NULL) {
+        Serial.print(F("unknown command received: "));
+        Serial.println(requested);
+        return;
+    }
     s = cmd(&m, ack);
 
-#ifdef DEBUGV
+#if DEBUG
     Serial.print(F("sending "));
     Serial.print(s);
     Serial.println(F(" bytes"));
@@ -330,6 +342,7 @@ void loop() {
 
     if (radioEnabled) {
         radio->tick();
+        send();
     }
 
     diff = tick - lastWrite;
