@@ -42,7 +42,7 @@ public:
 
     DashboardViewController() : ViewController() { }
 
-    ~DashboardViewController() { deinit(); }
+    ~DashboardViewController() { }
 
     void tick();
 

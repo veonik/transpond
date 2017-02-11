@@ -28,7 +28,7 @@ protected:
 public:
     ProgramsViewController() : ViewController() { }
 
-    ~ProgramsViewController() { deinit(); }
+    ~ProgramsViewController() { }
 
     void tick();
 

@@ -20,7 +20,7 @@ protected:
 public:
     SettingsViewController() : ViewController() { }
 
-    ~SettingsViewController() { deinit(); }
+    ~SettingsViewController() { }
 
     void tick();
 

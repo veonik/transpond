@@ -17,7 +17,7 @@ protected:
 public:
     DashboardConfigViewController() : ViewController() { }
 
-    ~DashboardConfigViewController() { deinit(); }
+    ~DashboardConfigViewController() { }
 
     void tick();
 

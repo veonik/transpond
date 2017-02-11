@@ -35,7 +35,7 @@ protected:
 public:
     LogSettingsViewController() : ViewController() { }
 
-    ~LogSettingsViewController() { deinit(); }
+    ~LogSettingsViewController() { }
 
     void tick();
 

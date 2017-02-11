@@ -119,6 +119,7 @@ void rotateLog() {
     Serial.print("rotating to new log file: ");
     Serial.println(logFilename);
 #endif
+    logFileSize = 0L;
 }
 
 void openLog() {

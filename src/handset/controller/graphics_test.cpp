@@ -1,78 +1,9 @@
 #include "graphics_test.h"
-#include "settings.h"
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
 
-void GraphicsTestViewController::tick() {}
-
-void GraphicsTestViewController::draw() {
-    Serial.println(F("Benchmark                Time (microseconds)"));
-    delay(10);
-    Serial.print(F("Screen fill              "));
-    Serial.println(testFillScreen());
-    delay(500);
-
-    Serial.print(F("Text                     "));
-    Serial.println(testText());
-    delay(3000);
-
-    Serial.print(F("Lines                    "));
-    Serial.println(testLines(ILI9341_CYAN));
-    delay(500);
-
-    Serial.print(F("Horiz/Vert Lines         "));
-    Serial.println(testFastLines(ILI9341_RED, ILI9341_BLUE));
-    delay(500);
-
-    Serial.print(F("Rectangles (outline)     "));
-    Serial.println(testRects(ILI9341_GREEN));
-    delay(500);
-
-    Serial.print(F("Rectangles (filled)      "));
-    Serial.println(testFilledRects(ILI9341_YELLOW, ILI9341_MAGENTA));
-    delay(500);
-
-    Serial.print(F("Circles (filled)         "));
-    Serial.println(testFilledCircles(10, ILI9341_MAGENTA));
-
-    Serial.print(F("Circles (outline)        "));
-    Serial.println(testCircles(10, ILI9341_WHITE));
-    delay(500);
-
-    Serial.print(F("Triangles (outline)      "));
-    Serial.println(testTriangles());
-    delay(500);
-
-    Serial.print(F("Triangles (filled)       "));
-    Serial.println(testFilledTriangles());
-    delay(500);
-
-    Serial.print(F("Rounded rects (outline)  "));
-    Serial.println(testRoundRects());
-    delay(500);
-
-    Serial.print(F("Rounded rects (filled)   "));
-    Serial.println(testFilledRoundRects());
-    delay(500);
-
-    Serial.println(F("Done!"));
-
-    for(uint8_t rotation=0; rotation<4; rotation++) {
-        tft.setRotation(rotation);
-        testText();
-        delay(1000);
-    }
-    tft.setRotation(0);
-
-    pipe->segueBack();
-}
-
-void GraphicsTestViewController::doInit() {
-    pipe->push(drawViewControllerForwarder, this);
-}
-
-unsigned long GraphicsTestViewController::testFillScreen() {
+unsigned long testFillScreen() {
     unsigned long start = micros();
     tft.fillScreen(ILI9341_BLACK);
     yield();
@@ -87,7 +18,7 @@ unsigned long GraphicsTestViewController::testFillScreen() {
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testText() {
+unsigned long testText() {
     tft.fillScreen(ILI9341_BLACK);
     unsigned long start = micros();
     tft.setCursor(0, 0);
@@ -114,7 +45,7 @@ unsigned long GraphicsTestViewController::testText() {
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testLines(uint16_t color) {
+unsigned long testLines(uint16_t color) {
     unsigned long start, t;
     int           x1, y1, x2, y2,
             w = tft.width(),
@@ -173,7 +104,7 @@ unsigned long GraphicsTestViewController::testLines(uint16_t color) {
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testFastLines(uint16_t color1, uint16_t color2) {
+unsigned long testFastLines(uint16_t color1, uint16_t color2) {
     unsigned long start;
     int           x, y, w = tft.width(), h = tft.height();
 
@@ -185,7 +116,7 @@ unsigned long GraphicsTestViewController::testFastLines(uint16_t color1, uint16_
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testRects(uint16_t color) {
+unsigned long testRects(uint16_t color) {
     unsigned long start;
     int           n, i, i2,
             cx = tft.width()  / 2,
@@ -202,7 +133,7 @@ unsigned long GraphicsTestViewController::testRects(uint16_t color) {
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testFilledRects(uint16_t color1, uint16_t color2) {
+unsigned long testFilledRects(uint16_t color1, uint16_t color2) {
     unsigned long start, t = 0;
     int           n, i, i2,
             cx = tft.width()  / 2 - 1,
@@ -223,7 +154,7 @@ unsigned long GraphicsTestViewController::testFilledRects(uint16_t color1, uint1
     return t;
 }
 
-unsigned long GraphicsTestViewController::testFilledCircles(uint8_t radius, uint16_t color) {
+unsigned long testFilledCircles(uint8_t radius, uint16_t color) {
     unsigned long start;
     int x, y, w = tft.width(), h = tft.height(), r2 = radius * 2;
 
@@ -238,7 +169,7 @@ unsigned long GraphicsTestViewController::testFilledCircles(uint8_t radius, uint
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testCircles(uint8_t radius, uint16_t color) {
+unsigned long testCircles(uint8_t radius, uint16_t color) {
     unsigned long start;
     int           x, y, r2 = radius * 2,
             w = tft.width()  + radius,
@@ -256,7 +187,7 @@ unsigned long GraphicsTestViewController::testCircles(uint8_t radius, uint16_t c
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testTriangles() {
+unsigned long testTriangles() {
     unsigned long start;
     int           n, i, cx = tft.width()  / 2 - 1,
             cy = tft.height() / 2 - 1;
@@ -275,7 +206,7 @@ unsigned long GraphicsTestViewController::testTriangles() {
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testFilledTriangles() {
+unsigned long testFilledTriangles() {
     unsigned long start, t = 0;
     int           i, cx = tft.width()  / 2 - 1,
             cy = tft.height() / 2 - 1;
@@ -295,7 +226,7 @@ unsigned long GraphicsTestViewController::testFilledTriangles() {
     return t;
 }
 
-unsigned long GraphicsTestViewController::testRoundRects() {
+unsigned long testRoundRects() {
     unsigned long start;
     int           w, i, i2,
             cx = tft.width()  / 2 - 1,
@@ -312,7 +243,7 @@ unsigned long GraphicsTestViewController::testRoundRects() {
     return micros() - start;
 }
 
-unsigned long GraphicsTestViewController::testFilledRoundRects() {
+unsigned long testFilledRoundRects() {
     unsigned long start;
     int           i, i2,
             cx = tft.width()  / 2 - 1,
@@ -327,4 +258,111 @@ unsigned long GraphicsTestViewController::testFilledRoundRects() {
     }
 
     return micros() - start;
+}
+
+
+void GraphicsTestViewController::tick() {}
+
+void GraphicsTestViewController::draw() {
+    tft.setFont(NULL);
+    pipe->push([](void*) {
+        Serial.println(F("Benchmark                Time (microseconds)"));
+        Serial.print(F("Screen fill              "));
+        Serial.println(testFillScreen());
+    }, NULL);
+
+    pipe->push([](void*) {
+    Serial.print(F("Text                     "));
+    Serial.println(testText());
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Lines                    "));
+    Serial.println(testLines(ILI9341_CYAN));
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Horiz/Vert Lines         "));
+    Serial.println(testFastLines(ILI9341_RED, ILI9341_BLUE));
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Rectangles (outline)     "));
+    Serial.println(testRects(ILI9341_GREEN));
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Rectangles (filled)      "));
+    Serial.println(testFilledRects(ILI9341_YELLOW, ILI9341_MAGENTA));
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Circles (filled)         "));
+    Serial.println(testFilledCircles(10, ILI9341_MAGENTA));
+    }, NULL);
+
+    pipe->push([](void*) {
+    Serial.print(F("Circles (outline)        "));
+    Serial.println(testCircles(10, ILI9341_WHITE));
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Triangles (outline)      "));
+    Serial.println(testTriangles());
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Triangles (filled)       "));
+    Serial.println(testFilledTriangles());
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Rounded rects (outline)  "));
+    Serial.println(testRoundRects());
+    }, NULL);
+
+    pipe->push([](void*) {
+
+    Serial.print(F("Rounded rects (filled)   "));
+    Serial.println(testFilledRoundRects());
+    }, NULL);
+
+    pipe->push([](void*) {
+        testText();
+    }, NULL);
+
+    pipe->push([](void*) {
+        tft.setRotation(1);
+        testText();
+    }, NULL);
+
+    pipe->push([](void*) {
+        tft.setRotation(2);
+        testText();
+    }, NULL);
+
+    pipe->push([](void*) {
+        tft.setRotation(3);
+        testText();
+    }, NULL);
+
+    pipe->push([](void*) {
+        tft.setRotation(0);
+    }, NULL);
+
+    pipe->push([](void*) {
+        pipe->segueBack();
+    },NULL);
+}
+
+void GraphicsTestViewController::doInit() {
+    pipe->push(drawViewControllerForwarder, this);
 }

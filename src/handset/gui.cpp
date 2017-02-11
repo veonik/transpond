@@ -12,6 +12,7 @@ void Pipeline::segueTo(ViewController *nextController) {
         _previousController = NULL;
     }
     if (_viewController != NULL) {
+        _viewController->deinit();
         delete _viewController;
     }
     _viewController = nextController;
@@ -38,6 +39,7 @@ void Pipeline::segueBack() {
     }
     flush();
     if (_viewController != NULL) {
+        _viewController->deinit();
         delete _viewController;
     }
     _viewController = _previousController;
@@ -94,7 +96,11 @@ void Pipeline::flush() {
 
 Control::~Control() {}
 
-ViewController::~ViewController() {}
+ViewController::~ViewController() {
+    if (_inited) {
+        Serial.println(F("dtor called on inited ViewController"));
+    }
+}
 
 void Clickable::tick() {
     if (screen.isTouching(

@@ -42,7 +42,7 @@ public:
 
     Dashboard2ViewController() : ViewController() { }
 
-    ~Dashboard2ViewController() { deinit(); }
+    ~Dashboard2ViewController() { }
 
     void tick();
 

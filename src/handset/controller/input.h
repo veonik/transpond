@@ -59,7 +59,7 @@ public:
         _onDoneContext = context;
     }
 
-    ~InputViewController() { deinit(); }
+    ~InputViewController() { }
 
     void tick();
 

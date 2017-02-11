@@ -30,6 +30,4 @@ void SettingsViewController::doInit() {
         pipe->seguePopover(new LogSettingsViewController());
     }, NULL);
     pipe->push(drawControlForwarder, _btnLogConfig);
-
-
 }

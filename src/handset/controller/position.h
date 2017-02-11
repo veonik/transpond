@@ -90,7 +90,7 @@ public:
         _dof = Adafruit_10DOF();
     }
 
-    ~PositionViewController() { deinit(); }
+    ~PositionViewController() { }
 
     void tick();
 
