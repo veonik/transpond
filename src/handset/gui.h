@@ -192,7 +192,7 @@ class Textbox : public Clickable {
 private:
     char _valueSuffixText[8];
 
-    int _lastValLength = 0;
+    size_t _lastValLength = 0;
     char _lastVal[16];
 
     bool _fillBackground = true;
@@ -211,7 +211,7 @@ public:
 
     void setValue(const char *val);
     void setValue(long val);
-    void setValue(double val, int precision = 2);
+    void setValue(double val, unsigned char precision = 2);
 
     void invalidate();
 
@@ -235,7 +235,7 @@ private:
     const char *_unitText = "";
 
     int _lastValDrawn;
-    int _lastValLength = 0;
+    size_t _lastValLength = 0;
     char _lastVal[8];
 
     int _stat;

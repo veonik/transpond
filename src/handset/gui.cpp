@@ -150,8 +150,8 @@ void Label::draw() {
         uint16_t w, h;
         int16_t x1, y1;
         tft.getTextBounds(_label, 10, 10, &x1, &y1, &w, &h);
-        int x = (int) ox + (_size.w / 2) - ((int) w / 2) - 1;
-        int y = (int) oy + (_size.h / 2) - ((int) h / 2);
+        int x = ox + (_size.w / 2) - ((int) w / 2) - 1;
+        int y = oy + (_size.h / 2) - ((int) h / 2);
         tft.setCursor(x, y + offset);
         tft.print(_label);
     } else {
@@ -193,7 +193,7 @@ void Textbox::setValue(long val) {
     ltoa(val, _value, 10);
 }
 
-void Textbox::setValue(double val, int precision) {
+void Textbox::setValue(double val, unsigned char precision) {
     String str = String(val, precision);
     strcpy(_value, str.c_str());
 }
@@ -218,7 +218,7 @@ void Textbox::draw() {
     }
 
     const char *valStr = _value;
-    int valLength = strlen(valStr);
+    size_t valLength = strlen(valStr);
     if (_lastValLength > 0) {
         if (strcmp(_lastVal, valStr) == 0) {
             return;
@@ -317,11 +317,11 @@ void Stat::drawLabel() {
 
 void Stat::drawValue() {
     char valStr[8];
-    int valLength;
+    size_t valLength;
     if (validReadingi(_stat)) {
-        valLength = sprintf(valStr, "%d", _stat);
+        valLength = (size_t) sprintf(valStr, "%d", _stat);
     } else {
-        valLength = sprintf(valStr, "-- ");
+        valLength = (size_t) sprintf(valStr, "-- ");
     }
     if (_lastValLength > 0) {
         if (_lastValDrawn == _stat) {
@@ -332,7 +332,6 @@ void Stat::drawValue() {
         tft.setFont(&Inconsolata_g8pt7b);
         tft.setTextColor(tft.color565(10, 10, 10));
         tft.print(_lastVal);
-
 
         if (valLength != _lastValLength) {
             tft.setFont(&Inconsolata_g5pt7b);
@@ -395,18 +394,15 @@ void Stat::drawChart() {
 void drawControlForwarder(void *context) {
     static_cast<Control*>(context)->draw();
 }
-
 void drawLabelForwarder(void* context) {
     static_cast<Stat*>(context)->drawLabel();
 }
-
 void drawValueForwarder(void* context) {
     static_cast<Stat*>(context)->drawValue();
 }
 void drawChartForwarder(void* context) {
     static_cast<Stat*>(context)->drawChart();
 }
-
 void drawViewControllerForwarder(void *context) {
     static_cast<ViewController*>(context)->draw();
 }
