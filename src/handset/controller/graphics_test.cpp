@@ -264,103 +264,103 @@ unsigned long testFilledRoundRects() {
 void GraphicsTestViewController::tick() {}
 
 void GraphicsTestViewController::draw() {
-    tft.setFont(NULL);
+    tft.setFont(nullptr);
     pipe->push([](void*) {
         Serial.println(F("Benchmark                Time (microseconds)"));
         Serial.print(F("Screen fill              "));
         Serial.println(testFillScreen());
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
     Serial.print(F("Text                     "));
     Serial.println(testText());
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Lines                    "));
     Serial.println(testLines(ILI9341_CYAN));
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Horiz/Vert Lines         "));
     Serial.println(testFastLines(ILI9341_RED, ILI9341_BLUE));
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Rectangles (outline)     "));
     Serial.println(testRects(ILI9341_GREEN));
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Rectangles (filled)      "));
     Serial.println(testFilledRects(ILI9341_YELLOW, ILI9341_MAGENTA));
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Circles (filled)         "));
     Serial.println(testFilledCircles(10, ILI9341_MAGENTA));
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
     Serial.print(F("Circles (outline)        "));
     Serial.println(testCircles(10, ILI9341_WHITE));
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Triangles (outline)      "));
     Serial.println(testTriangles());
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Triangles (filled)       "));
     Serial.println(testFilledTriangles());
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Rounded rects (outline)  "));
     Serial.println(testRoundRects());
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
 
     Serial.print(F("Rounded rects (filled)   "));
     Serial.println(testFilledRoundRects());
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
         testText();
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
         tft.setRotation(1);
         testText();
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
         tft.setRotation(2);
         testText();
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
         tft.setRotation(3);
         testText();
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
         tft.setRotation(0);
-    }, NULL);
+    }, nullptr);
 
     pipe->push([](void*) {
         pipe->segueBack();
-    },NULL);
+    },nullptr);
 }
 
 void GraphicsTestViewController::doInit() {

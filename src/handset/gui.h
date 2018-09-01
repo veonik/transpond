@@ -89,8 +89,8 @@ class Pipeline {
 private:
     static const byte SIZE = 128;
 
-    tickCallback _callbacks[SIZE];
-    void *_contexts[SIZE];
+    tickCallback _callbacks[SIZE]{};
+    void *_contexts[SIZE]{};
 
     byte _pop = 0;
     byte _push = 0;
@@ -99,12 +99,12 @@ private:
     /**
      * The current ViewController.
      */
-    ViewController *_viewController = NULL;
+    ViewController *_viewController = nullptr;
 
     /**
      * The previous ViewController, populated only during "seguePopover" operations.
      */
-    ViewController *_previousController = NULL;
+    ViewController *_previousController = nullptr;
 
 public:
     void segueTo(ViewController *nextController);
@@ -120,8 +120,8 @@ public:
 
 class Control {
 protected:
-    Point _pos;
-    Size _size;
+    Point _pos{};
+    Size _size{};
 
 public:
     Control(Point pos, Size siz) {
@@ -137,8 +137,8 @@ public:
 
 class Clickable : public Control {
 private:
-    tickCallback _onClick = NULL;
-    void *_onClickContext;
+    tickCallback _onClick = nullptr;
+    void *_onClickContext = nullptr;
 
 protected:
     byte _touching = 0;
@@ -147,18 +147,16 @@ public:
     Clickable(Point pos, Size siz) : Control(pos, siz) {}
 
     void then(tickCallback cb) {
-        then(cb, NULL);
+        then(cb, nullptr);
     }
     void then(tickCallback cb, void *context);
 
-    void tick();
-
-    virtual void draw() = 0;
+    void tick() override;
 };
 
 class Label : public Clickable {
 private:
-    char _label[16];
+    char _label[16]{};
 
 public:
     int fontSize = 1;
@@ -169,9 +167,9 @@ public:
 
     void setLabel(const char *label);
 
-    void tick();
+    void tick() override;
 
-    void draw();
+    void draw() override;
 };
 
 class Button : public Label {
@@ -183,21 +181,21 @@ public:
         centerLabel = true;
     }
 
-    void tick();
+    void tick() override;
 
-    void draw();
+    void draw() override;
 };
 
 class Textbox : public Clickable {
 private:
-    char _valueSuffixText[8];
+    char _valueSuffixText[8]{};
 
     size_t _lastValLength = 0;
-    char _lastVal[16];
+    char _lastVal[16]{};
 
     bool _fillBackground = true;
 
-    char _value[16];
+    char _value[16]{};
 
 public:
     int fontSize = 2;
@@ -217,29 +215,29 @@ public:
 
     const char *getValue();
 
-    void tick();
+    void tick() override;
 
-    void draw();
+    void draw() override;
 };
 
 
 
 class Stat : public Control {
 private:
-    Point _value;
-    Point _chart;
+    Point _value{};
+    Point _chart{};
 
     int _chartWidth = 240;
     int _controlWidth = 60;
     const char *_labelText = "";
     const char *_unitText = "";
 
-    int _lastValDrawn;
+    int _lastValDrawn{};
     size_t _lastValLength = 0;
-    char _lastVal[8];
+    char _lastVal[8]{};
 
-    int _stat;
-    int _historical[160];
+    int _stat{};
+    int _historical[160]{};
     bool _enableChart = false;
     bool _hideLabel = false;
     bool _redrawChart = true;
@@ -257,7 +255,7 @@ public:
         _chart = Point{x: chartX, y: chartY};
     }
 
-    ~Stat() { }
+    ~Stat() = default;
 
     void setEnableChart(bool enable);
 

@@ -20,7 +20,7 @@ void SettingsViewController::doInit() {
     _btnExit->setLabel("x");
     _btnExit->then([](void *context) {
         pipe->segueBack();
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnExit);
 
     _btnLogConfig = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
@@ -28,6 +28,6 @@ void SettingsViewController::doInit() {
     _btnLogConfig->fontSize = 2;
     _btnLogConfig->then([](void *context) {
         pipe->seguePopover(new LogSettingsViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnLogConfig);
 }

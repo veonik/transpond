@@ -35,7 +35,7 @@ void LogSettingsViewController::doInit() {
     _btnExit->setLabel("x");
     _btnExit->then([](void *context) {
         pipe->segueBack();
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnExit);
 
     _lblLocalEnabled = new Label(Point{x: 10, y: 50}, Size{w: 25, h: 25});
@@ -55,7 +55,7 @@ void LogSettingsViewController::doInit() {
     _btnLocalToggle->then([](void *context) {
         // TODO: Actually disable local logging
 
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnLocalToggle);
 
     _lblRemoteEnabled = new Label(Point{x: 10, y: 90}, Size{w: 25, h: 25});
@@ -81,6 +81,6 @@ void LogSettingsViewController::doInit() {
         Message msg("tl");
         radio->send(&msg);
         delay(10);
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnRemoteToggle);
 }

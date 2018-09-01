@@ -283,7 +283,7 @@ void PositionViewController::center() {
 #endif
     pipe->push([](void *context) {
         tft.fillRect(0, 120, 240, 120, ILI9341_BLACK);
-    }, NULL);
+    }, nullptr);
     _deferDrawPositionStats();
     val.f = _centerLat;
     EEPROM.write(CENTER_ADDR, val.b[0]);
@@ -361,7 +361,7 @@ void PositionViewController::doInit() {
     _btnExit->setLabel("x");
     _btnExit->then([](void *context) {
         pipe->segueBack();
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnExit);
 
     _lblXValue = new Label(Point{x: 10, y: 10}, Size{w: 25, h: 13});

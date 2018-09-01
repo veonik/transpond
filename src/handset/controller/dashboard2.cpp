@@ -60,7 +60,7 @@ void Dashboard2ViewController::doInit() {
     _btnSettings->setLabel("SET");
     _btnSettings->then([](void *context) {
         pipe->seguePopover(new SettingsViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnSettings);
 
     _btnPrograms = new Button(Point{x: 80, y: 280}, Size{w: 60, h: 30});
@@ -68,7 +68,7 @@ void Dashboard2ViewController::doInit() {
     _btnPrograms->setLabel("PROG");
     _btnPrograms->then([](void *context) {
         pipe->seguePopover(new ProgramsViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnPrograms);
 
     _btnConfig = new Button(Point{x: 170, y: 280}, Size{w: 60, h: 30});
@@ -76,7 +76,7 @@ void Dashboard2ViewController::doInit() {
     _btnConfig->setLabel("CFG");
     _btnConfig->then([](void *context) {
         pipe->seguePopover(new DashboardConfigViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnConfig);
 
     _ack = new Stat(10, 10, 50, 10, 10, 90);

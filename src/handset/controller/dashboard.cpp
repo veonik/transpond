@@ -59,7 +59,7 @@ void DashboardViewController::doInit() {
     _btnSettings->setLabel("SET");
     _btnSettings->then([](void *context) {
         pipe->seguePopover(new SettingsViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnSettings);
 
     _btnPrograms = new Button(Point{x: 80, y: 280}, Size{w: 60, h: 30});
@@ -67,7 +67,7 @@ void DashboardViewController::doInit() {
     _btnPrograms->setLabel("PROG");
     _btnPrograms->then([](void *context) {
         pipe->seguePopover(new ProgramsViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnPrograms);
 
     _btnClear = new Button(Point{x: 170, y: 280}, Size{w: 60, h: 30});

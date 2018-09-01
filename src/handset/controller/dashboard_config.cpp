@@ -19,6 +19,6 @@ void DashboardConfigViewController::doInit() {
     _btnExit->setLabel("x");
     _btnExit->then([](void *context) {
         pipe->segueBack();
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnExit);
 }

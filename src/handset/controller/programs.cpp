@@ -28,7 +28,7 @@ void ProgramsViewController::doInit() {
     _btnExit->setLabel("x");
     _btnExit->then([](void *context) {
         pipe->segueBack();
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnExit);
 
     _btnDashboard = new Button(Point{x: 10, y: 10}, Size{w: 150, h: 30});
@@ -36,7 +36,7 @@ void ProgramsViewController::doInit() {
     _btnDashboard->fontSize = 2;
     _btnDashboard->then([](void *context) {
         pipe->segueTo(new DashboardViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnDashboard);
 
     _btnDashboard2 = new Button(Point{x: 10, y: 50}, Size{w: 150, h: 30});
@@ -44,7 +44,7 @@ void ProgramsViewController::doInit() {
     _btnDashboard2->fontSize = 2;
     _btnDashboard2->then([](void *context) {
         pipe->segueTo(new Dashboard2ViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnDashboard2);
 
     _btnGraphicsTest = new Button(Point{x: 10, y: 90}, Size{w: 150, h: 30});
@@ -52,7 +52,7 @@ void ProgramsViewController::doInit() {
     _btnGraphicsTest->fontSize = 2;
     _btnGraphicsTest->then([](void *context) {
         pipe->seguePopover(new GraphicsTestViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnGraphicsTest);
 
     _btnInputTest = new Button(Point{x: 10, y: 130}, Size{w: 150, h: 30});
@@ -71,6 +71,6 @@ void ProgramsViewController::doInit() {
     _btnPosition->fontSize = 2;
     _btnPosition->then([](void *context) {
         pipe->seguePopover(new PositionViewController());
-    }, NULL);
+    }, nullptr);
     pipe->push(drawControlForwarder, _btnPosition);
 }

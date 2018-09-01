@@ -1,4 +1,4 @@
-#ifndef TRANSPONDER
+#ifdef HANDSET
 
 #include <Arduino.h>
 #include <CC1101Radio.h>
@@ -28,10 +28,10 @@ SdVolume volume;
 SdFile root;
 SdFile dataFile;
 
-metrics m;
+metrics m{};
 //metrics mMin; // TODO: collect these constantly, but not in bulk.
 //metrics mMax;
-metrics mLast;
+metrics mLast{};
 
 unsigned long lastTick;
 unsigned long lastUpdate;
@@ -171,7 +171,7 @@ void onMessageReceived(Message *msg) {
 #endif
     // expects "pre<data>"
     packFn cmd = getCommand(body);
-    if (cmd == NULL) {
+    if (cmd == nullptr) {
         Serial.print("received non-ack or malformed: ");
         Serial.print(body[0]);
         Serial.print(body[1]);

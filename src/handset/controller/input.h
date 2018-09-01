@@ -22,7 +22,7 @@ private:
     Button *_buttonBackspace;
     Button *_buttonDone;
 
-    inputReceivedCallback _onDone = NULL;
+    inputReceivedCallback _onDone = nullptr;
     void *_onDoneContext;
 
     char _value[16];
@@ -31,10 +31,10 @@ protected:
     void doInit();
 
     void doDeInit() {
-        if (_onDone != NULL) {
+        if (_onDone != nullptr) {
             _onDone(_onDoneContext, _textbox->getValue());
-            _onDone = NULL;
-            _onDoneContext = NULL;
+            _onDone = nullptr;
+            _onDoneContext = nullptr;
         }
         delete _textbox;
         delete _button0;
@@ -52,7 +52,7 @@ protected:
     }
 
 public:
-    InputViewController(const char *value, inputReceivedCallback callback) : InputViewController(value, callback, NULL) {}
+    InputViewController(const char *value, inputReceivedCallback callback) : InputViewController(value, callback, nullptr) {}
     InputViewController(const char *value, inputReceivedCallback callback, void *context) : ViewController() {
         strncpy(_value, value, 16);
         _onDone = callback;

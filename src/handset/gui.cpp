@@ -7,11 +7,11 @@ TouchScreen screen = TouchScreen(XP, YP, XM, YM);
 
 void Pipeline::segueTo(ViewController *nextController) {
     flush();
-    if (_previousController != NULL) {
+    if (_previousController != nullptr) {
         delete _previousController;
-        _previousController = NULL;
+        _previousController = nullptr;
     }
-    if (_viewController != NULL) {
+    if (_viewController != nullptr) {
         _viewController->deinit();
         delete _viewController;
     }
@@ -21,7 +21,7 @@ void Pipeline::segueTo(ViewController *nextController) {
 
 void Pipeline::seguePopover(ViewController *popoverController) {
     flush();
-    if (_previousController == NULL) {
+    if (_previousController == nullptr) {
         _previousController = _viewController;
         _previousController->deinit();
     }
@@ -30,7 +30,7 @@ void Pipeline::seguePopover(ViewController *popoverController) {
 }
 
 void Pipeline::segueBack() {
-    if (_previousController == NULL) {
+    if (_previousController == nullptr) {
         // TODO: Inconsistent api
 #ifdef DEBUGV
         Serial.println(F("segue back called, no previous controller"));
@@ -38,12 +38,12 @@ void Pipeline::segueBack() {
         return;
     }
     flush();
-    if (_viewController != NULL) {
+    if (_viewController != nullptr) {
         _viewController->deinit();
         delete _viewController;
     }
     _viewController = _previousController;
-    _previousController = NULL;
+    _previousController = nullptr;
     _viewController->init();
 }
 
@@ -82,8 +82,8 @@ void Pipeline::tick() {
 
     void *context = _contexts[last];
     _callbacks[last](context);
-    _callbacks[last] = NULL;
-    _contexts[last] = NULL;
+    _callbacks[last] = nullptr;
+    _contexts[last] = nullptr;
 }
 
 void Pipeline::flush() {
@@ -94,7 +94,7 @@ void Pipeline::flush() {
     _draining = false;
 }
 
-Control::~Control() {}
+Control::~Control() = default;
 
 ViewController::~ViewController() {
     if (_inited) {
@@ -115,7 +115,7 @@ void Clickable::tick() {
         }
     } else if (_touching > 0) {
         _touching = 0;
-        if (_onClick != NULL) {
+        if (_onClick != nullptr) {
             pipe->push(_onClick, _onClickContext);
         }
         pipe->push(drawControlForwarder, this);
