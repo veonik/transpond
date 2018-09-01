@@ -1,4 +1,4 @@
-#ifndef HANDSET
+#ifdef TRANSPONDER
 
 #include <Arduino.h>
 
@@ -65,9 +65,17 @@ const long WRITE_WAIT = 250;    // in ms
 const long UPDATE_WAIT = 64;    // in ms
 const long GPS_WAIT = 100;    // in ms
 
-char requested[3];
+char requested[3]{};
 
-metrics m;
+metrics m{};
+
+void disableSensors() {
+    accelEnabled = false;
+    magEnabled = false;
+    gyroEnabled = false;
+    bnoEnabled = false;
+    framStarted = false;
+}
 
 void initSensors() {
     if (!accel.begin()) {
@@ -127,7 +135,7 @@ void send() {
     requested[0] = 0;
     requested[1] = 0;
     requested[2] = 0;
-    if (cmd == NULL) {
+    if (cmd == nullptr) {
         Serial.print(F("unknown command received: "));
         Serial.println(requested);
         return;
@@ -314,7 +322,8 @@ void setup() {
     Serial.println(F("transponder"));
     radio = new CC1101Radio();
     radio->listen(onMessageReceived);
-    initSensors();
+//    initSensors();
+    disableSensors();
 }
 
 void loop() {
@@ -327,18 +336,18 @@ void loop() {
     if (diff >= UPDATE_WAIT) {
         avgUpdateDelay = expAvg(avgUpdateDelay, diff);
         lastUpdate = tick;
-        update();
+//        update();
     }
 
-    while (gpsSerial.available()) {
-        gps.encode(gpsSerial.read());
-    }
-
-    diff = tick - lastGpsUpdate;
-    if (diff >= GPS_WAIT) {
-        lastGpsUpdate = tick;
-        updateGps();
-    }
+//    while (gpsSerial.available()) {
+//        gps.encode(gpsSerial.read());
+//    }
+//
+//    diff = tick - lastGpsUpdate;
+//    if (diff >= GPS_WAIT) {
+//        lastGpsUpdate = tick;
+//        updateGps();
+//    }
 
     if (radioEnabled) {
         radio->tick();

@@ -34,7 +34,7 @@ packFn getCommand(const char *prefix) {
             return cmds[i].fn;
         }
     }
-    return NULL;
+    return nullptr;
 }
 
 size_t ackUnpack(metrics *m, char *buf) {
