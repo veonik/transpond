@@ -1,12 +1,14 @@
 #ifndef TRANSPOND_UTIL_H
 #define TRANSPOND_UTIL_H
 
-#ifdef __MK64FX512__
-int readVcc() {
-    return 0;
+#if defined(__MK64FX512__) || defined(__MK66FX1M0__)
+#include <RamMonitor.h>
+extern RamMonitor ramMonitor;
+int32_t freeRam() {
+    return ramMonitor.adj_free();
 }
 
-int freeRam() {
+int readVcc() {
     return 0;
 }
 #else

@@ -6,6 +6,10 @@
 //#ifdef __MK64FX512__
 //#include <i2c_t3.h>
 //#endif
+#ifdef __MK64FX512__
+#define TRANSPOND_DISABLE_GPS
+#define TRANSPOND_DISABLE_SENSORS
+#endif
 
 #include <CC1101Radio.h>
 
@@ -37,6 +41,8 @@ Adafruit_BNO055               bno   = Adafruit_BNO055(55);
 #ifndef __MK64FX512__
 gSoftSerial gpsSerial = gSoftSerial(5, 4);
 #else
+#include <RamMonitor.h>
+RamMonitor ramMonitor{};
 HardwareSerial gpsSerial = Serial1;
 #endif
 TinyGPSPlus gps;
@@ -318,15 +324,24 @@ void log() {
 }
 
 void setup() {
+#ifdef __MK64FX512__
+    ramMonitor.initialize();
+#endif
     Serial.begin(38400);
     Serial.println(F("transponder"));
     radio = new CC1101Radio();
     radio->listen(onMessageReceived);
-//    initSensors();
+#ifndef TRANSPOND_DISABLE_SENSORS
+    initSensors();
+#else
     disableSensors();
+#endif
 }
 
 void loop() {
+#ifdef __MK64FX512__
+    ramMonitor.run();
+#endif
     unsigned long tick = millis();
     long diff = tick - lastTick;
     avgTickDelay = expAvg(avgTickDelay, diff);
@@ -336,18 +351,22 @@ void loop() {
     if (diff >= UPDATE_WAIT) {
         avgUpdateDelay = expAvg(avgUpdateDelay, diff);
         lastUpdate = tick;
-//        update();
+#ifndef TRANSPOND_DISABLE_SENSORS
+        update();
+#endif
     }
 
-//    while (gpsSerial.available()) {
-//        gps.encode(gpsSerial.read());
-//    }
-//
-//    diff = tick - lastGpsUpdate;
-//    if (diff >= GPS_WAIT) {
-//        lastGpsUpdate = tick;
-//        updateGps();
-//    }
+#ifndef TRANSPOND_DISABLE_GPS
+    while (gpsSerial.available()) {
+        gps.encode(gpsSerial.read());
+    }
+
+    diff = tick - lastGpsUpdate;
+    if (diff >= GPS_WAIT) {
+        lastGpsUpdate = tick;
+        updateGps();
+    }
+#endif
 
     if (radioEnabled) {
         radio->tick();
@@ -376,6 +395,11 @@ void loop() {
             Serial.print(F("RAM free: "));
             Serial.print(freeRam());
             Serial.println(F(" bytes"));
+#ifdef __MK64FX512__
+            Serial.print(F("RAM total: "));
+            Serial.print(ramMonitor.total());
+            Serial.println(F(" bytes"));
+#endif
         } else if (cmd == 'G') {
             printGps = 5;
             printGpsI = 0;

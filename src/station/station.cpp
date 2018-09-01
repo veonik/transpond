@@ -4,7 +4,7 @@
 #include <CC1101Radio.h>
 #include <SPI.h>
 #ifdef __MK64FX512__
-#include "../common/util_teensy_ram.h"
+#include <RamMonitor.h>
 #endif
 
 #include "../common/util.h"
@@ -35,6 +35,8 @@ long avgSendDelay;   // ms
 bool disableLogging = false;
 bool sendInfx = false;
 
+char lastReceived[64]{};
+
 const long MIN_SEND_WAIT = 50;  // in ms
 const long MAX_SEND_WAIT = 1000; // in ms
 const long TIMEOUT_WAIT = 1000;  // in ms
@@ -49,20 +51,36 @@ void onMessageReceived(Message *msg) {
     Serial.print(msg->size);
     Serial.println(" bytes");
 #endif
-    // expects "pre<data>"
-    packFn cmd = getCommand(body);
-    if (cmd == nullptr) {
-        Serial.print("received non-ack or malformed: ");
-        Serial.print(body[0]);
-        Serial.print(body[1]);
-        Serial.println(body[2]);
+    if (lastReceived[0] != 0) {
+        Serial.println("received packet but not done processing previous packet!");
         return;
     }
-    cmd(&m, (char *)body);
+    memcpy(lastReceived, body, 64);
 
     lastAck = ack;
     lastRssi = msg->rssi;
     lastRoundtrip = (int) (lastAck-lastSent);
+}
+
+int printTicks;
+int printTicksI;
+
+void handleMessage() {
+    // expects "pre<data>"
+    Serial.print("command: ");
+    Serial.print(lastReceived[0]);
+    Serial.print(lastReceived[1]);
+    packFn cmd = getCommand(lastReceived);
+    if (cmd == nullptr) {
+        Serial.println(F(" (invalid command)"));
+    } else {
+        Serial.println();
+        if (printTicks > printTicksI) {
+            Serial.print("contents: ");
+            Serial.println(lastReceived);
+        }
+    }
+    memset(lastReceived, 0, 64);
 }
 
 void setup() {
@@ -77,13 +95,8 @@ void setup() {
     radio->listen(onMessageReceived);
 }
 
-int printTicks;
-int printTicksI;
 
 void loop() {
-#ifdef __MK64FX512__
-    ramMonitor.run();
-#endif
     unsigned long tick = millis();
     long diff = tick - lastTick;
     avgTickDelay = expAvg(avgTickDelay, diff);
@@ -96,16 +109,19 @@ void loop() {
 
     // Radio tick.
     radio->tick();
+    if (lastReceived[0] != 0) {
+        handleMessage();
+    }
 
     // Send helo.
     diff = tick - lastSent;
     if ((lastAck < lastSent && diff > MAX_SEND_WAIT)
         || diff > MIN_SEND_WAIT
     ) {
+        //TODO: Add configurable ability for station to act as a handset
 //        avgSendDelay = expAvg(avgSendDelay, diff);
 //        lastSent = tick;
 //        if (printTicks > printTicksI) {
-//            printTicksI++;
 //            Serial.print("send delay: ");
 //            Serial.print(diff);
 //            Serial.println("ms");
@@ -119,6 +135,7 @@ void loop() {
 //            radio->send(&msg);
 //        }
 //        sendInfx = !sendInfx;
+        delay(1);
     }
 
     // Update metrics.
@@ -127,6 +144,9 @@ void loop() {
         memcpy(&mLast, &m, sizeof(metrics));
         lastUpdate = tick;
         lastVcc = readVcc();
+#ifdef __MK64FX512__
+        ramMonitor.run();
+#endif
 
         sinceLastAck = (int) ((lastUpdate - lastAck) / 1000L);
         if (sinceLastAck < 0) {
@@ -147,6 +167,10 @@ void loop() {
             lastRoundtrip = NO_READING_INT;
             lastRssi = NO_READING_INT;
         }
+    }
+
+    if (printTicks > printTicksI) {
+        printTicksI++;
     }
 
     // Serial commands.
