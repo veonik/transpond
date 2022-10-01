@@ -3,7 +3,36 @@
 
 extern Adafruit_ILI9341 tft;
 extern Pipeline *pipe;
-TouchScreen screen = TouchScreen(XP, YP, XM, YM);
+extern Adafruit_STMPE610 screen;
+
+// These may need to be calibrated differently for different shields
+#define TS_MINX 270
+#define TS_MINY 230
+#define TS_MAXX 3800
+#define TS_MAXY 3800
+
+// This was originally designed for capacitive touch and returns the touch pressure.
+int isTouching(int x1, int y1, int x2, int y2) {
+  if (!screen.touched()) {
+      return 0;
+  }
+  TS_Point p = screen.getPoint();
+#ifdef TSDEBUG
+  if (p.x > 0 || p.y > 0) {
+      Serial.print(p.x);
+      Serial.print(", ");
+      Serial.println(p.y);
+  }
+#endif
+  p.x = map(p.x, TS_MINX, TS_MAXX, 0, tft.width());
+  p.y = map(p.y, TS_MINY, TS_MAXY, 0, tft.height());
+  if (p.x >= x1 && p.x <= x2
+      && p.y >= y1 && p.y <= y2
+  ) {
+      return 1;
+  }
+  return 0;
+}
 
 void Pipeline::segueTo(ViewController *nextController) {
     flush();
@@ -103,7 +132,7 @@ ViewController::~ViewController() {
 }
 
 void Clickable::tick() {
-    if (screen.isTouching(
+    if (isTouching(
         _pos.x,
         _pos.y,
         _pos.x+_size.w,

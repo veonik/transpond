@@ -4,6 +4,8 @@
 #include <CC1101Radio.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
+#include <Adafruit_STMPE610.h>
+#include <Wire.h>
 #include <SD.h>
 #include <SPI.h>
 
@@ -13,11 +15,13 @@
 #include "gui.h"
 #include "controller/dashboard.h"
 
-#define TFT_DC 6
-#define TFT_CS 5
+#define TFT_DC 9
+#define TFT_CS 10
 #define SD_CS 4
+#define STMPE_CS 8
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
+Adafruit_STMPE610 screen = Adafruit_STMPE610(STMPE_CS);
 
 Pipeline *pipe;
 
@@ -33,10 +37,10 @@ metrics m{};
 //metrics mMax;
 metrics mLast{};
 
-unsigned long lastTick;
-unsigned long lastUpdate;
-unsigned long lastAck;
-unsigned long lastSent;
+unsigned long lastTick = 0;
+unsigned long lastUpdate = 0;
+unsigned long lastAck = 0;
+unsigned long lastSent = 0;
 int lastRssi;        // dBm
 int lastRoundtrip;   // ms
 int lastVcc;         // mV
@@ -190,6 +194,24 @@ void setup() {
     Serial.println("handset");
 
     tft.begin();
+    if (!screen.begin()) {
+      Serial.println("Failed to initialize touchescreen!");
+    }
+
+#ifdef DEBUGV
+    // tft diagnostics
+    uint8_t x = tft.readcommand8(ILI9341_RDMODE);
+    Serial.print("Display Power Mode: 0x"); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDMADCTL);
+    Serial.print("MADCTL Mode: 0x"); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDPIXFMT);
+    Serial.print("Pixel Format: 0x"); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDIMGFMT);
+    Serial.print("Image Format: 0x"); Serial.println(x, HEX);
+    x = tft.readcommand8(ILI9341_RDSELFDIAG);
+    Serial.print("Self Diagnostic: 0x"); Serial.println(x, HEX);
+#endif
+
     tft.fillScreen(ILI9341_BLACK);
 
     setupLog();
@@ -350,8 +372,8 @@ void writeLog() {
     }
 }
 
-int printTicks;
-int printTicksI;
+int printTicks = 0;
+int printTicksI = 0;
 
 void loop() {
     unsigned long tick = millis();

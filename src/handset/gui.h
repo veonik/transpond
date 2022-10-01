@@ -3,7 +3,8 @@
 
 #include <Arduino.h>
 #include <Adafruit_ILI9341.h>
-#include <SeeedTouchScreen.h>
+#include <Adafruit_STMPE610.h>
+#include <Wire.h>
 #include <limits.h>
 
 #include "Inconsolata_g5pt7b.h"
@@ -11,26 +12,6 @@
 
 #define CURSOR_Y_SMALL 6
 #define CURSOR_Y_LARGE 13
-
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) // mega
-#define YP A2   // must be an analog pin, use "An" notation!
-#define XM A1   // must be an analog pin, use "An" notation!
-#define YM 54   // can be a digital pin, this is A0
-#define XP 57   // can be a digital pin, this is A3
-
-#elif defined(__AVR_ATmega32U4__) // leonardo
-#define YP A2   // must be an analog pin, use "An" notation!
-#define XM A1   // must be an analog pin, use "An" notation!
-#define YM 18   // can be a digital pin, this is A0
-#define XP 21   // can be a digital pin, this is A3
-
-#else //168, 328, something else
-#define YP A2   // must be an analog pin, use "An" notation!
-#define XM A1   // must be an analog pin, use "An" notation!
-#define YM 14   // can be a digital pin, this is A0
-#define XP 17   // can be a digital pin, this is A3
-
-#endif
 
 void drawControlForwarder(void *context);
 void drawViewControllerForwarder(void *context);
