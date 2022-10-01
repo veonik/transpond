@@ -115,10 +115,12 @@ void initSensors() {
         framStarted = true;
     }
 
+#ifndef TRANSPOND_DISABLE_GPS
     gpsSerial.begin(9600);
     gpsSerial.println(PMTK_SET_NMEA_OUTPUT_RMCGGA);
     gpsSerial.println(PMTK_SET_NMEA_UPDATE_5HZ);
     gpsSerial.println(PMTK_API_SET_FIX_CTL_5HZ);
+#endif
 }
 
 int printGps;
