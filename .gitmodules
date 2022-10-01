@@ -27,7 +27,7 @@
 	url = https://github.com/veonik/Touch_Screen_Driver.git
 [submodule "lib/Adafruit_BNO055"]
 	path = lib/Adafruit_BNO055
-	url = https://github.com/veonik/Adafruit_BNO055.git
+	url = https://github.com/adafruit/Adafruit_BNO055.git
 [submodule "lib/TinyGPSPlus"]
 	path = lib/TinyGPSPlus
 	url = https://github.com/mikalhart/TinyGPSPlus.git
@@ -37,3 +37,6 @@
 [submodule "lib/Teensy-RAM-Monitor"]
 	path = lib/Teensy-RAM-Monitor
 	url = https://github.com/veonik/Teensy-RAM-Monitor
+[submodule "lib/Adafruit_STMPE610"]
+	path = lib/Adafruit_STMPE610
+	url = git@github.com:adafruit/Adafruit_STMPE610
